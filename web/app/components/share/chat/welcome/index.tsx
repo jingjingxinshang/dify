@@ -338,10 +338,6 @@ const Welcome: FC<IWelcomeProps> = ({
               </div>
               : <div>
               </div>}
-            {plan === 'basic' && <a className='flex items-center pr-3 space-x-3' href="https://dify.ai/" target="_blank">
-              <span className='uppercase'>{t('share.chat.powerBy')}</span>
-              <FootLogo />
-            </a>}
           </div>
         )}
       </div>
