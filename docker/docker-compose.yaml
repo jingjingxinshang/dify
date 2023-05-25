@@ -156,7 +156,7 @@ services:
 
   # Frontend web application.
   web:
-    image: langgenius/dify-web:0.3.0
+    image: cda96dd9a6e09786a73a01965fca8c51eec9ebc6da02578291712929fa2a2de1
     restart: always
     environment:
       EDITION: SELF_HOSTED

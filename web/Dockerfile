@@ -13,11 +13,12 @@ WORKDIR /app/web
 
 COPY package.json /app/web/package.json
 
-RUN npm install
+RUN npm install -g pnpm
+RUN pnpm install
 
 COPY . /app/web/
 
-RUN npm run build
+RUN pnpm run build
 
 COPY docker/pm2.json /app/web/pm2.json
 COPY docker/entrypoint.sh /entrypoint.sh
