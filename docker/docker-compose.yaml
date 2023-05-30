@@ -156,7 +156,7 @@ services:
 
   # Frontend web application.
   web:
-    image: cda96dd9a6e09786a73a01965fca8c51eec9ebc6da02578291712929fa2a2de1
+    image: a4b03f1a91c36a3c95eb44de001ec414d916166ee81728386566394b89ab93a9
     restart: always
     environment:
       EDITION: SELF_HOSTED
