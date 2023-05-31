@@ -147,3 +147,4 @@ docker/volumes/weaviate/*
 sdks/python-client/build
 sdks/python-client/dist
 sdks/python-client/dify_client.egg-info
+!/web/.vscode/
