@@ -1,11 +1,11 @@
 .copyIcon {
-  background-image: url(~@/app/components/develop/secret-key/assets/copy.svg);
+  background-image: url(~@/app/components/develop/secret-key/assets/tts.svg);
   background-position: center;
   background-repeat: no-repeat;
 }
 
 .copyIcon:hover {
-  background-image: url(~@/app/components/develop/secret-key/assets/copy-hover.svg);
+  background-image: url(~@/app/components/develop/secret-key/assets/tts.svg);
   background-position: center;
   background-repeat: no-repeat;
 }

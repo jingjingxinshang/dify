@@ -2,7 +2,7 @@ version: '3.1'
 services:
   # API service
   api:
-    image: d84e63af84833fd543080b65a8232143bebf572373843fc44b1e5705836fab65
+    image: fb7bf2867b0498bd1c4fd35c75f2ea639ebcdd58afad1071b5ab25c945e35cb3
     restart: always
     environment:
       # Startup mode, 'api' starts the API server.
@@ -110,7 +110,7 @@ services:
   # worker service
   # The Celery worker for processing the queue.
   worker:
-    image: d84e63af84833fd543080b65a8232143bebf572373843fc44b1e5705836fab65
+    image: fb7bf2867b0498bd1c4fd35c75f2ea639ebcdd58afad1071b5ab25c945e35cb3
     restart: always
     environment:
       # Startup mode, 'worker' starts the Celery worker for processing the queue.

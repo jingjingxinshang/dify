@@ -27,6 +27,22 @@ const nextConfig = {
       },
     ]
   },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.module.rules.push({
+        test: /\.worker\.js$/,
+        loader: 'worker-loader',
+        options: {
+          // 指定 Worker 文件的输出路径，例如 /static/worker/[hash].worker.js
+          filename: 'static/worker/[hash].worker.js',
+          // 指定 Worker 文件的公共路径，用于引入 Worker 文件
+          publicPath: '/_next/',
+        },
+      })
+    }
+
+    return config
+  },
 }
 
 module.exports = withMDX(nextConfig)
