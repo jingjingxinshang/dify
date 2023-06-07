@@ -11,6 +11,7 @@
     "eslint-fix": "eslint --fix"
   },
   "dependencies": {
+    "@babel/runtime": "^7.22.3",
     "@emoji-mart/data": "^1.1.2",
     "@formatjs/intl-localematcher": "^0.2.32",
     "@headlessui/react": "^1.7.13",
@@ -42,6 +43,7 @@
     "immer": "^9.0.19",
     "js-base64": "^3.7.5",
     "js-cookie": "^3.0.1",
+    "katex": "^0.16.7",
     "lodash-es": "^4.17.21",
     "negotiator": "^0.6.3",
     "next": "13.2.4",
