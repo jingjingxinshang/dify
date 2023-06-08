@@ -20,7 +20,7 @@ import { Markdown } from '@/app/components/base/markdown'
 import { formatNumber } from '@/utils/format'
 import useBreakpoints, { MediaType } from '@/hooks/use-breakpoints'
 import TtsBtn from '@/app/components/app/chat/tts-btn'
-
+import IatRecorder from '@/app/components/app/chat/tts-btn/IAT.js'
 const stopIcon = (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path fillRule="evenodd" clipRule="evenodd" d="M7.00004 0.583313C3.45621 0.583313 0.583374 3.45615 0.583374 6.99998C0.583374 10.5438 3.45621 13.4166 7.00004 13.4166C10.5439 13.4166 13.4167 10.5438 13.4167 6.99998C13.4167 3.45615 10.5439 0.583313 7.00004 0.583313ZM4.73029 4.98515C4.66671 5.10993 4.66671 5.27328 4.66671 5.59998V8.39998C4.66671 8.72668 4.66671 8.89003 4.73029 9.01481C4.78621 9.12457 4.87545 9.21381 4.98521 9.26973C5.10999 9.33331 5.27334 9.33331 5.60004 9.33331H8.40004C8.72674 9.33331 8.89009 9.33331 9.01487 9.26973C9.12463 9.21381 9.21387 9.12457 9.2698 9.01481C9.33337 8.89003 9.33337 8.72668 9.33337 8.39998V5.59998C9.33337 5.27328 9.33337 5.10993 9.2698 4.98515C9.21387 4.87539 9.12463 4.78615 9.01487 4.73023C8.89009 4.66665 8.72674 4.66665 8.40004 4.66665H5.60004C5.27334 4.66665 5.10999 4.66665 4.98521 4.73023C4.87545 4.78615 4.78621 4.87539 4.73029 4.98515Z" fill="#667085" />
@@ -474,11 +474,43 @@ const Chat: FC<IChatProps> = ({
       e.preventDefault()
     }
   }
-
+  // iat  语音处理
+  const handleIATStart = (e: any) => {
+    console.log('iat,', e)
+    const iatRecorder = new IatRecorder()
+    console.log(iatRecorder)
+    iatRecorder.start()
+    let countInterval: string | number | NodeJS.Timer | undefined
+    // 状态改变时处罚
+    iatRecorder.onWillStatusChange = (oldStatus, status) => {
+      console.log('oldStatus', oldStatus, status)
+      // const senconds = 0
+      if (status === 'ing') {
+        console.log('ing')
+        notify({ type: 'success', message: '开始语音识别', duration: 3000 })
+      }
+      else if (status === 'init') {
+      // 初始化阶段
+        console.log('初始化阶段')
+      }
+      else {
+      // 结束
+        notify({ type: 'success', message: '语音识别结束', duration: 3000 })
+        console.log('结束')
+        clearInterval(countInterval)
+        window.document.getElementById('sendBTN')?.click()
+      }
+    }
+    // 监听识别结果的变化
+    iatRecorder.onTextChange = (text) => {
+      setQuery(text)
+    // text 语音识别后的结果
+    }
+  }
   const media = useBreakpoints()
   const isMobile = media === MediaType.mobile
-  const sendBtn = <div className={cn(!(!query || query.trim() === '') && s.sendBtnActive, `${s.sendBtn} w-8 h-8 cursor-pointer rounded-md`)} onClick={handleSend}></div>
-
+  const sendBtn = <div id='sendBTN' className={cn(!(!query || query.trim() === '') && s.sendBtnActive, `${s.sendBtn} w-8 h-8 cursor-pointer rounded-md`)} onClick={handleSend}></div>
+  const iatBtn = <div className={(`${s.iatBtn} w-4 h-4 cursor-pointer rounded-md mr-3`)} onClick={handleIATStart}></div>
   const suggestionListRef = useRef<HTMLDivElement>(null)
   const [hasScrollbar, setHasScrollbar] = useState(false)
   useLayoutEffect(() => {
@@ -567,19 +599,35 @@ const Chat: FC<IChatProps> = ({
               <div className="absolute top-0 right-2 flex items-center h-[48px]">
                 <div className={`${s.count} mr-4 h-5 leading-5 text-sm bg-gray-50 text-gray-500`}>{query.trim().length}</div>
                 {isMobile
-                  ? sendBtn
+                  ? <>
+                    {iatBtn}
+                    {sendBtn}
+                  </>
                   : (
-                    <Tooltip
-                      selector='send-tip'
-                      htmlContent={
-                        <div>
-                          <div>{t('common.operation.send')} Enter</div>
-                          <div>{t('common.operation.lineBreak')} Shift Enter</div>
-                        </div>
-                      }
-                    >
-                      {sendBtn}
-                    </Tooltip>
+                    <>
+                      <Tooltip
+                        selector='iat-tip'
+                        htmlContent={
+                          <div>
+                            语音输入
+                          </div>
+                        }
+                      >
+                        {iatBtn}
+                      </Tooltip>
+                      <Tooltip
+                        selector='send-tip'
+                        htmlContent={
+                          <div>
+                            <div>{t('common.operation.send')} Enter</div>
+                            <div>{t('common.operation.lineBreak')} Shift Enter</div>
+                          </div>
+                        }
+                      >
+                        {sendBtn}
+                      </Tooltip>
+                    </>
+
                   )}
               </div>
             </div>

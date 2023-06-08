@@ -118,3 +118,6 @@
 .textArea:focus+div .sendBtn {
   background-image: url(./icons/send-active.svg);
 }
+.iatBtn{
+  background: url(./icons/iat.svg) center center no-repeat;
+}

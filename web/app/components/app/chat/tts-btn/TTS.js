@@ -20,41 +20,20 @@
 // 3. 处理websocket返回数据为浏览器可以播放的音频数据
 // 4. 播放音频数据
 // ps: 该示例用到了es6中的一些语法，建议在chrome下运行
-import CryptoJS from 'crypto-js'
+
 import { Base64 } from 'js-base64'
 import TranscodeAudio from './transcode.worker.js'
-
+import { APP_ID, getWebsocketUrl } from './xunfei.js'
 const transWorker = new TranscodeAudio()
 // APPID，APISecret，APIKey在控制台-我的应用-语音合成（流式版）页面获取
-const APPID = '27f3f9d7'
-const API_SECRET = 'N2E5YzY3NjRlMjVmNzQxYTJjMGU5NTdm'
-const API_KEY = '84326b87b61c24bc90e34487f4091ac4'
 
-function getWebsocketUrl() {
-  return new Promise((resolve, reject) => {
-    const apiKey = API_KEY
-    const apiSecret = API_SECRET
-    let url = 'wss://tts-api.xfyun.cn/v2/tts'
-    const host = location.host
-    const date = new Date().toGMTString()
-    const algorithm = 'hmac-sha256'
-    const headers = 'host date request-line'
-    const signatureOrigin = `host: ${host}\ndate: ${date}\nGET /v2/tts HTTP/1.1`
-    const signatureSha = CryptoJS.HmacSHA256(signatureOrigin, apiSecret)
-    const signature = CryptoJS.enc.Base64.stringify(signatureSha)
-    const authorizationOrigin = `api_key="${apiKey}", algorithm="${algorithm}", headers="${headers}", signature="${signature}"`
-    const authorization = btoa(authorizationOrigin)
-    url = `${url}?authorization=${authorization}&date=${date}&host=${host}`
-    resolve(url)
-  })
-}
 class TTSRecorder {
   constructor({
     speed = 50,
     voice = 50,
     pitch = 50,
     voiceName = 'x4_lingxiaoxuan_en',
-    appId = APPID,
+    appId = APP_ID,
     text = '',
     tte = 'UTF8',
     defaultText = '请输入您要合成的文本',
@@ -69,12 +48,14 @@ class TTSRecorder {
     this.appId = appId
     this.audioData = []
     this.rawAudioData = []
+    this.isPlaying = false // 添加一个播放状态的标志
     this.audioDataOffset = 0
     this.status = 'init'
     transWorker.onmessage = (e) => {
       this.audioData.push(...e.data.data)
       this.rawAudioData.push(...e.data.rawAudioData)
     }
+    this.onWillStatusChange = undefined
   }
 
   // 修改录音听写状态
@@ -118,7 +99,6 @@ class TTSRecorder {
       }
       ttsWS.onmessage = (e) => {
         this.result(e.data)
-        console.log('onmessage', e)
       }
       ttsWS.onerror = (e) => {
         clearTimeout(this.playTimeout)
@@ -194,7 +174,7 @@ class TTSRecorder {
   // websocket接收数据的处理
   result(resultData) {
     const jsonData = JSON.parse(resultData)
-    console.log('resultData', jsonData)
+    // console.log('resultData', jsonData)
     // 合成失败
     if (jsonData.code !== 0) {
       alert(`合成失败: ${jsonData.code}:${jsonData.message}`)
@@ -234,7 +214,7 @@ class TTSRecorder {
   audioPlay() {
     this.setStatus('play')
     const audioData = this.audioData.slice(this.audioDataOffset)
-    console.log('audioPlay', audioData)
+    // console.log('audioPlay', audioData)
     this.audioDataOffset += audioData.length
     const audioBuffer = this.audioContext.createBuffer(1, audioData.length, 22050)
     const nowBuffering = audioBuffer.getChannelData(0)
@@ -259,6 +239,7 @@ class TTSRecorder {
       else
         this.audioStop()
     }
+    this.isPlaying = true // 设置播放状态为true
   }
 
   // 音频播放结束
@@ -274,26 +255,23 @@ class TTSRecorder {
         console.log(e)
       }
     }
+    this.isPlaying = false // 设置播放状态为false
   }
 
   start() {
-    if (this.audioData.length) {
-      this.audioPlay()
-    }
-    else {
-      if (!this.audioContext)
+    if (this.audioData.length === 0 && this.text) {
+      this.connectWebSocket().then(() => {
         this.audioInit()
-
-      if (!this.audioContext) {
-        alert('该浏览器不支持webAudioApi相关接口')
-        return
-      }
-      this.connectWebSocket()
+      })
+    }
+    else if (this.audioData.length > 0) {
+      this.audioPlay()
     }
   }
 
   stop() {
     this.audioStop()
+    this.resetAudio()
   }
 }
 export default TTSRecorder

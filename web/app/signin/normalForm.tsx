@@ -2,16 +2,15 @@
 import React, { useEffect, useReducer, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useRouter } from 'next/navigation'
-import { IS_CE_EDITION } from '@/config'
 import classNames from 'classnames'
 import useSWR from 'swr'
 import Link from 'next/link'
+import Toast from '../components/base/toast'
 import style from './page.module.css'
 // import Tooltip from '@/app/components/base/tooltip/index'
-import Toast from '../components/base/toast'
+import { IS_CE_EDITION, apiPrefix } from '@/config'
 import Button from '@/app/components/base/button'
 import { login, oauth } from '@/service/common'
-import { apiPrefix } from '@/config'
 
 const validEmailReg = /^[\w\.-]+@([\w-]+\.)+[\w-]{2,}$/
 
@@ -92,7 +91,8 @@ const NormalForm = () => {
         },
       })
       router.push('/')
-    } finally {
+    }
+    finally {
       setIsLoading(false)
     }
   }

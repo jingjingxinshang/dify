@@ -19,8 +19,8 @@ else if (
 }
 else {
   if (isDevelopment) {
-    apiPrefix = 'http://localhost/console/api'
-    publicApiPrefix = 'http://localhost/api'
+    apiPrefix = 'http://192.168.6.144/console/api'
+    publicApiPrefix = 'http://192.168.6.144/api'
   }
   else {
     // const domainParts = globalThis.location?.host?.split('.');

@@ -18,11 +18,11 @@ services:
       # The URL for Service API endpoints，refers to the base URL of the current API service if api domain is
       # different from console domain.
       # example: http://api.dify.ai
-      API_URL: ''
+      API_URL: 'http://192.168.6.144'
       # The URL for Web APP, refers to the Web App base URL of WEB service if web app domain is different from
       # console or api domain.
       # example: http://udify.app
-      APP_URL: 'http://localhost:3000'
+      APP_URL: 'http://192.168.6.144:3000'
       # When enabled, migrations will be executed prior to application startup and the application will start after the migrations have completed.
       MIGRATION_ENABLED: 'true'
       # The configurations of postgres database connection.
@@ -167,7 +167,7 @@ services:
       # The URL for Web APP, refers to the Web App base URL of WEB service if web app domain is different from
       # console or api domain.
       # example: http://udify.app
-      APP_URL: 'http://localhost:3000'
+      APP_URL: 'http://192.168.6.144:3000'
 
   # The postgres database.
   db:
