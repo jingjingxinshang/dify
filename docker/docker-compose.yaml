@@ -2,7 +2,7 @@ version: '3.1'
 services:
   # API service
   api:
-    image: 15aa8e36bf6c627c5c8caa119b3b38c30125374ed446bc3af2bfcc59e83629b1
+    image: langgenius/dify-api:0.3.3
     restart: always
     environment:
       # Startup mode, 'api' starts the API server.
@@ -110,7 +110,7 @@ services:
   # worker service
   # The Celery worker for processing the queue.
   worker:
-    image: 15aa8e36bf6c627c5c8caa119b3b38c30125374ed446bc3af2bfcc59e83629b1
+    image: langgenius/dify-api:0.3.3
     restart: always
     environment:
       # Startup mode, 'worker' starts the Celery worker for processing the queue.
@@ -156,7 +156,7 @@ services:
 
   # Frontend web application.
   web:
-    image: 311104058f2d307c4a72c8f507f6f226c7c5445e5a287d2e7abe5775621e8166
+    image: langgenius/dify-web:0.3.3
     restart: always
     environment:
       EDITION: SELF_HOSTED
@@ -167,7 +167,9 @@ services:
       # The URL for Web APP, refers to the Web App base URL of WEB service if web app domain is different from
       # console or api domain.
       # example: http://udify.app
-      APP_URL: 'http://192.168.6.107:3000'
+      APP_URL: ''
+      # The DSN for Sentry error reporting. If not set, Sentry error reporting will be disabled.
+      SENTRY_DSN: ''
 
   # The postgres database.
   db:

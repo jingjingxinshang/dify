@@ -15,7 +15,7 @@ import { ToastContext } from '@/app/components/base/toast'
 import Sidebar from '@/app/components/share/chat/sidebar'
 import ConfigSence from '@/app/components/share/chat/config-scence'
 import Header from '@/app/components/share/header'
-import { fetchAppInfo, fetchAppParams, fetchChatList, fetchConversations, fetchSuggestedQuestions, sendChatMessage, updateFeedback } from '@/service/share'
+import { fetchAppInfo, fetchAppParams, fetchChatList, fetchConversations, fetchSuggestedQuestions, sendChatMessage, stopChatMessageResponding, updateFeedback } from '@/service/share'
 import type { ConversationItem, SiteInfo } from '@/models/share'
 import type { PromptConfig, SuggestedQuestionsAfterAnswerConfig } from '@/models/debug'
 import type { Feedbacktype, IChatItem } from '@/app/components/app/chat'
@@ -192,7 +192,7 @@ const Main: FC<IMainProps> = ({
   }, [chatList, currConversationId])
   // user can not edit inputs if user had send message
   const canEditInpus = !chatList.some(item => item.isAnswer === false) && isNewConversation
-  const createNewChat = () => {
+  const createNewChat = async () => {
     // if new chat is already exist, do not create new chat
     abortController?.abort()
     setResponsingFalse()
@@ -333,6 +333,9 @@ const Main: FC<IMainProps> = ({
   const [isShowSuggestion, setIsShowSuggestion] = useState(false)
   const doShowSuggestion = isShowSuggestion && !isResponsing
   const [suggestQuestions, setSuggestQuestions] = useState<string[]>([])
+  const [messageTaskId, setMessageTaskId] = useState('')
+  const [hasStopResponded, setHasStopResponded, getHasStopResponded] = useGetState(false)
+
   const handleSend = async (message: string) => {
     if (isResponsing) {
       notify({ type: 'info', message: t('appDebug.errorMessage.waitForResponse') })
@@ -371,18 +374,20 @@ const Main: FC<IMainProps> = ({
 
     let tempNewConversationId = ''
 
+    setHasStopResponded(false)
     setResponsingTrue()
     setIsShowSuggestion(false)
     sendChatMessage(data, {
       getAbortController: (abortController) => {
         setAbortController(abortController)
       },
-      onData: (message: string, isFirstMessage: boolean, { conversationId: newConversationId, messageId }: any) => {
+      onData: (message: string, isFirstMessage: boolean, { conversationId: newConversationId, messageId, taskId }: any) => {
         responseItem.content = responseItem.content + message
         responseItem.id = messageId
         if (isFirstMessage && newConversationId)
           tempNewConversationId = newConversationId
 
+        setMessageTaskId(taskId)
         // closesure new list is outdated.
         const newListWithAnswer = produce(
           getChatList().filter(item => item.id !== responseItem.id && item.id !== placeholderAnswerId),
@@ -423,7 +428,8 @@ const Main: FC<IMainProps> = ({
           ttsRecorder.stop()
           console.log('stop')
         }
-        if (suggestedQuestionsAfterAnswerConfig?.enabled) {
+
+        if (suggestedQuestionsAfterAnswerConfig?.enabled && !getHasStopResponded()) {
           const { data }: any = await fetchSuggestedQuestions(responseItem.id, isInstalledApp, installedAppInfo?.id)
           setSuggestQuestions(data)
           setIsShowSuggestion(true)
@@ -546,8 +552,10 @@ const Main: FC<IMainProps> = ({
                     isHideFeedbackEdit
                     onFeedback={handleFeedback}
                     isResponsing={isResponsing}
-                    abortResponsing={() => {
-                      abortController?.abort()
+                    canStopResponsing={!!messageTaskId}
+                    abortResponsing={async () => {
+                      await stopChatMessageResponding(appId, messageTaskId, isInstalledApp, installedAppInfo?.id)
+                      setHasStopResponded(true)
                       setResponsingFalse()
                     }}
                     checkCanSend={checkCanSend}
