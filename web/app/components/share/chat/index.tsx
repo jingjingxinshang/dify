@@ -335,7 +335,11 @@ const Main: FC<IMainProps> = ({
   const [suggestQuestions, setSuggestQuestions] = useState<string[]>([])
   const [messageTaskId, setMessageTaskId] = useState('')
   const [hasStopResponded, setHasStopResponded, getHasStopResponded] = useGetState(false)
-
+  const [abortResponsing, setAbortResponsing] = useState(false)
+  useEffect(() => {
+    if (!abortResponsing)
+      setResponsingFalse()
+  }, [abortResponsing])
   const handleSend = async (message: string) => {
     if (isResponsing) {
       notify({ type: 'info', message: t('appDebug.errorMessage.waitForResponse') })
@@ -400,7 +404,6 @@ const Main: FC<IMainProps> = ({
         setChatList(newListWithAnswer)
       },
       async onCompleted(hasError?: boolean) {
-        setResponsingFalse()
         if (hasError)
           return
 
@@ -422,13 +425,18 @@ const Main: FC<IMainProps> = ({
         } as any)
         if (['init', 'endPlay', 'errorTTS', 'ttsing'].includes(ttsRecorder.status)) {
           ttsRecorder.start()
+          setAbortResponsing(true)
           console.log('start')
         }
         else {
           ttsRecorder.stop()
           console.log('stop')
         }
-
+        ttsRecorder.onWillStatusChange = (status) => {
+          console.log(status)
+          if (status === 'endPlay')
+            setAbortResponsing(false)
+        }
         if (suggestedQuestionsAfterAnswerConfig?.enabled && !getHasStopResponded()) {
           const { data }: any = await fetchSuggestedQuestions(responseItem.id, isInstalledApp, installedAppInfo?.id)
           setSuggestQuestions(data)

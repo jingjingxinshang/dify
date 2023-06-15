@@ -19,7 +19,6 @@ import AppContext from '@/context/app-context'
 import { Markdown } from '@/app/components/base/markdown'
 import { formatNumber } from '@/utils/format'
 import useBreakpoints, { MediaType } from '@/hooks/use-breakpoints'
-import TtsBtn from '@/app/components/app/chat/tts-btn'
 import IatRecorder from '@/app/components/app/chat/tts-btn/IAT.js'
 const stopIcon = (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -353,10 +352,10 @@ const Answer: FC<IAnswerProps> = ({ item, feedbackDisabled = false, isHideFeedba
                 }
               </div>
               <div className='absolute top-[-14px] right-[-14px] flex flex-row justify-end gap-1'>
-                <TtsBtn
+                {/* <TtsBtn
                   value={content}
                   className={cn(s.copyBtn, 'mr-1')}
-                />
+                /> */}
                 <CopyBtn
                   value={content}
                   className={cn(s.copyBtn, 'mr-1')}
@@ -480,6 +479,7 @@ const Chat: FC<IChatProps> = ({
   // iat  语音处理
 
   const [iatStatus, setIatStatus] = useState(iatRecorder.status)
+  const [isRecordingStopped, setRecordingStopped] = useState(false)
   useEffect(() => {
     if (iatStatus === 'ing') {
       console.log('ing')
@@ -490,15 +490,24 @@ const Chat: FC<IChatProps> = ({
       console.log('初始化阶段')
     }
     else {
+      if (iatStatus === 'null')
+        return
       // 结束
-      if (iatRecorder.resultText === '') {
-        notify({ type: 'error', message: '未识别到语音', duration: 3000 })
+      if (iatRecorder.audioContext && iatRecorder.resultText === '') {
+        if (!isRecordingStopped) {
+          console.log('text=== ""', iatStatus)
+          notify({ type: 'error', message: '未识别到语音', duration: 3000 })
+          return
+        }
+        // 处理手动停止录音的情况
+        console.log('手动停止录音')
         return
       }
 
       notify({ type: 'success', message: '语音识别结束', duration: 3000 })
       console.log('结束')
       handleSend()
+      iatRecorder.stop()
     }
   }, [iatStatus])
   const handleIATStart = (e: any) => {
@@ -507,10 +516,12 @@ const Chat: FC<IChatProps> = ({
     if (iatStatus === 'ing') {
       console.log('我在这里, ing', iatStatus)
       iatRecorder.stop()
+      setRecordingStopped(true) // 设置为手动停止录音
       return
     }
     console.log(iatRecorder)
     iatRecorder.start()
+    setRecordingStopped(false)
     iatRecorder.onWillStatusChange = (oldStatus: string, status: string) => {
       console.log(status)
       setIatStatus(status)

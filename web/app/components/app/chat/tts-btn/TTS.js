@@ -212,14 +212,20 @@ class TTSRecorder {
     bufferSource.connect(this.audioContext.destination)
     bufferSource.start()
     bufferSource.onended = (event) => {
-      if (this.status !== 'play')
+      if (this.status !== 'play') {
+        this.setStatus('endPlay')
         return
+      }
 
-      if (this.audioDataOffset < this.audioData.length)
+      if (this.audioDataOffset < this.audioData.length) {
         this.audioPlay()
+      }
 
-      else
+      else {
+        console.log('播放结束')
+        this.setStatus('endPlay')
         this.audioStop()
+      }
     }
   }
 

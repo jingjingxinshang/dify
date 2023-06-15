@@ -3,7 +3,7 @@ import type { FC } from 'react'
 import React, { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter, useSelectedLayoutSegments } from 'next/navigation'
 import useSWR, { SWRConfig } from 'swr'
-import * as Sentry from '@sentry/react'
+
 import Header from '../components/header'
 import { fetchAppList } from '@/service/apps'
 import { fetchDatasets } from '@/service/datasets'
@@ -20,22 +20,6 @@ export type ICommonLayoutProps = {
 }
 
 const CommonLayout: FC<ICommonLayoutProps> = ({ children }) => {
-  useEffect(() => {
-    const SENTRY_DSN = document?.body?.getAttribute('data-public-sentry-dsn')
-    if (!isDevelopment && SENTRY_DSN) {
-      Sentry.init({
-        dsn: SENTRY_DSN,
-        integrations: [
-          new Sentry.BrowserTracing({
-          }),
-          new Sentry.Replay(),
-        ],
-        tracesSampleRate: 0.1,
-        replaysSessionSampleRate: 0.1,
-        replaysOnErrorSampleRate: 1.0,
-      })
-    }
-  }, [])
   const router = useRouter()
   const pathname = usePathname()
   const segments = useSelectedLayoutSegments()

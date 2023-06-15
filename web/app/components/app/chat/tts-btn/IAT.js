@@ -9,6 +9,7 @@ class IatRecorder {
     this.language = language || 'zh_cn'
     this.accent = accent || 'mandarin'
     this.appId = appId || APP_ID
+    this.stream = null
     // 记录音频数据
     this.audioData = []
     // 记录听写结果
@@ -102,6 +103,7 @@ class IatRecorder {
 
     // 获取浏览器录音权限成功的回调
     const getMediaSuccess = (stream) => {
+      this.stream = stream
       console.log('getMediaSuccess')
       // 创建一个用于通过JavaScript直接处理音频
       this.scriptProcessor = this.audioContext.createScriptProcessor(0, 1, 1)
@@ -167,29 +169,70 @@ class IatRecorder {
   }
 
   recorderStart() {
-    if (!this.audioContext) {
-      console.log('audioContext不存在')
-      this.recorderInit()
-    }
-    else {
-      console.log('audioContext存在')
-      this.audioContext.resume()
-      this.connectWebSocket()
-    }
+    // if (!this.audioContext) {
+    // console.log('audioContext不存在')
+    this.recorderInit()
+    // }
+    // else {
+    // console.log('audioContext存在')
+    // this.audioContext.resume()
+    // this.connectWebSocket()
+    // }
   }
 
   // 暂停录音
+  // recorderStop() {
+  //   if (this.audioContext && this.audioContext.state !== 'closed') {
+  //     this.setStatus('end')
+  //     if (this.audioContext.state !== 'closed') {
+  //       if (this.audioContext.state === 'running') {
+  //         this.audioContext.suspend().then(() => {
+  //           this.closeAudioContext()
+  //         })
+  //       }
+  //       else {
+  //         this.closeAudioContext()
+  //       }
+  //     }
+  //   }
+  // }
+
   recorderStop() {
-    // if (!(/Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgen))) {
-    //   // safari下suspend后再次resume录音内容将是空白，设置safari下不做suspend
-    //   this.audioContext && this.audioContext.suspend()
-    // }
     this.setStatus('end')
-    try {
-      // this.streamRef.getTracks().map(track => track.stop()) || his.streamRef.getAudioTracks()[0].stop();
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      if (this.audioContext.state === 'running') {
+        this.audioContext.suspend().then(() => {
+          this.closeAudioContext()
+        })
+      }
+      else {
+        this.closeAudioContext()
+      }
     }
-    catch (error) {
-      console.error('暂停失败!')
+  }
+
+  closeAudioContext() {
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      this.audioContext.close()
+      if (this.stream) {
+        const tracks = this.stream.getTracks()
+        tracks.forEach(track => track.stop())
+        this.stream = null
+      }
+
+      if (this.webSocket && this.webSocket.readyState === 1) {
+        this.webSocket.send(
+          JSON.stringify({
+            data: {
+              status: 2,
+              format: 'audio/L16;rate=16000',
+              encoding: 'raw',
+              audio: '',
+            },
+          }),
+        )
+        this.webSocket.close()
+      }
     }
   }
 
@@ -318,7 +361,7 @@ class IatRecorder {
   }
 
   stop() {
-    this.setStatus('end')
+    this.recorderStop()
   }
 }
 
