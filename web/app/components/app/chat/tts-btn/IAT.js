@@ -1,10 +1,10 @@
-import { APP_ID, getWebsocketUrl } from './xunfei.js'
+import { APP_ID, getIatWebSocketUrl } from './xunfei.js'
 import TranscodeAudio from './iatTranscode.worker.js'
 const transWorker = new TranscodeAudio()
 
 class IatRecorder {
   // url 这个参数最好是用过后端获取，当然如果只是测试，可以使用后面的方法getWebSocketUrl()获得
-  constructor({ language, accent, appId } = {}) {
+  constructor({ language, accent, appId, onWillStatusChange, onTextChange } = {}) {
     this.status = 'null'
     this.language = language || 'zh_cn'
     this.accent = accent || 'mandarin'
@@ -43,7 +43,7 @@ class IatRecorder {
 
   // 连接websocket
   connectWebSocket() {
-    getWebsocketUrl('wss://iat-api.xfyun.cn/v2/iat').then((url) => {
+    getIatWebSocketUrl().then((url) => {
       let iatWS
       if ('WebSocket' in window) {
         iatWS = new WebSocket(url)
@@ -168,9 +168,11 @@ class IatRecorder {
 
   recorderStart() {
     if (!this.audioContext) {
+      console.log('audioContext不存在')
       this.recorderInit()
     }
     else {
+      console.log('audioContext存在')
       this.audioContext.resume()
       this.connectWebSocket()
     }
@@ -178,11 +180,17 @@ class IatRecorder {
 
   // 暂停录音
   recorderStop() {
-    // safari下suspend后再次resume录音内容将是空白，设置safari下不做suspend
-    if (!(/Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgen)))
-      this.audioContext && this.audioContext.suspend()
-
+    // if (!(/Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgen))) {
+    //   // safari下suspend后再次resume录音内容将是空白，设置safari下不做suspend
+    //   this.audioContext && this.audioContext.suspend()
+    // }
     this.setStatus('end')
+    try {
+      // this.streamRef.getTracks().map(track => track.stop()) || his.streamRef.getAudioTracks()[0].stop();
+    }
+    catch (error) {
+      console.error('暂停失败!')
+    }
   }
 
   // 处理音频数据
@@ -204,7 +212,7 @@ class IatRecorder {
   // 向webSocket发送数据
   webSocketSend() {
     if (this.webSocket.readyState !== 1)
-      return
+      return false
 
     let audioData = this.audioData.splice(0, 1280)
     const params = {
@@ -215,7 +223,7 @@ class IatRecorder {
         language: this.language, // 小语种可在控制台--语音听写（流式）--方言/语种处添加试用
         domain: 'iat',
         accent: this.accent, // 中文方言可在控制台--语音听写（流式）--方言/语种处添加试用
-        vad_eos: 5000,
+        vad_eos: 3000,
         dwa: 'wpgs', // 为使该功能生效，需到控制台开通动态修正功能（该功能免费）
       },
       data: {
@@ -310,7 +318,7 @@ class IatRecorder {
   }
 
   stop() {
-    this.recorderStop()
+    this.setStatus('end')
   }
 }
 

@@ -404,7 +404,7 @@ const Question: FC<IQuestionProps> = ({ id, content, more, useCurrentUserAvatar 
     </div>
   )
 }
-
+const iatRecorder = new IatRecorder()
 const Chat: FC<IChatProps> = ({
   chatList,
   feedbackDisabled = false,
@@ -474,37 +474,48 @@ const Chat: FC<IChatProps> = ({
       e.preventDefault()
     }
   }
+
   // iat  语音处理
+
+  const [iatStatus, setIatStatus] = useState(iatRecorder.status)
+  useEffect(() => {
+    if (iatStatus === 'ing') {
+      console.log('ing')
+      notify({ type: 'success', message: '开始语音识别', duration: 3000 })
+    }
+    else if (iatStatus === 'init') {
+      // 初始化阶段
+      console.log('初始化阶段')
+    }
+    else {
+      // 结束
+      if (iatRecorder.resultText === '') {
+        notify({ type: 'error', message: '未识别到语音', duration: 3000 })
+        return
+      }
+
+      notify({ type: 'success', message: '语音识别结束', duration: 3000 })
+      console.log('结束')
+      handleSend()
+    }
+  }, [iatStatus])
   const handleIATStart = (e: any) => {
     console.log('iat,', e)
-    const iatRecorder = new IatRecorder()
+
+    if (iatStatus === 'ing') {
+      console.log('我在这里, ing', iatStatus)
+      iatRecorder.stop()
+      return
+    }
     console.log(iatRecorder)
     iatRecorder.start()
-    let countInterval: string | number | NodeJS.Timer | undefined
-    // 状态改变时处罚
-    iatRecorder.onWillStatusChange = (oldStatus, status) => {
-      console.log('oldStatus', oldStatus, status)
-      // const senconds = 0
-      if (status === 'ing') {
-        console.log('ing')
-        notify({ type: 'success', message: '开始语音识别', duration: 3000 })
-      }
-      else if (status === 'init') {
-      // 初始化阶段
-        console.log('初始化阶段')
-      }
-      else {
-      // 结束
-        notify({ type: 'success', message: '语音识别结束', duration: 3000 })
-        console.log('结束')
-        clearInterval(countInterval)
-        window.document.getElementById('sendBTN')?.click()
-      }
+    iatRecorder.onWillStatusChange = (oldStatus: string, status: string) => {
+      console.log(status)
+      setIatStatus(status)
     }
-    // 监听识别结果的变化
-    iatRecorder.onTextChange = (text) => {
+    iatRecorder.onTextChange = function (text: any) {
+      console.log(text)
       setQuery(text)
-    // text 语音识别后的结果
     }
   }
   const media = useBreakpoints()

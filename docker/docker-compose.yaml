@@ -2,7 +2,7 @@ version: '3.1'
 services:
   # API service
   api:
-    image: fb7bf2867b0498bd1c4fd35c75f2ea639ebcdd58afad1071b5ab25c945e35cb3
+    image: 15aa8e36bf6c627c5c8caa119b3b38c30125374ed446bc3af2bfcc59e83629b1
     restart: always
     environment:
       # Startup mode, 'api' starts the API server.
@@ -18,11 +18,11 @@ services:
       # The URL for Service API endpoints，refers to the base URL of the current API service if api domain is
       # different from console domain.
       # example: http://api.dify.ai
-      API_URL: 'http://192.168.6.144'
+      API_URL: 'http://192.168.6.107'
       # The URL for Web APP, refers to the Web App base URL of WEB service if web app domain is different from
       # console or api domain.
       # example: http://udify.app
-      APP_URL: 'http://192.168.6.144:3000'
+      APP_URL: 'http://192.168.6.107:3000'
       # When enabled, migrations will be executed prior to application startup and the application will start after the migrations have completed.
       MIGRATION_ENABLED: 'true'
       # The configurations of postgres database connection.
@@ -110,7 +110,7 @@ services:
   # worker service
   # The Celery worker for processing the queue.
   worker:
-    image: fb7bf2867b0498bd1c4fd35c75f2ea639ebcdd58afad1071b5ab25c945e35cb3
+    image: 15aa8e36bf6c627c5c8caa119b3b38c30125374ed446bc3af2bfcc59e83629b1
     restart: always
     environment:
       # Startup mode, 'worker' starts the Celery worker for processing the queue.
@@ -156,7 +156,7 @@ services:
 
   # Frontend web application.
   web:
-    image: langgenius/dify-web:0.3.1
+    image: 311104058f2d307c4a72c8f507f6f226c7c5445e5a287d2e7abe5775621e8166
     restart: always
     environment:
       EDITION: SELF_HOSTED
@@ -167,7 +167,7 @@ services:
       # The URL for Web APP, refers to the Web App base URL of WEB service if web app domain is different from
       # console or api domain.
       # example: http://udify.app
-      APP_URL: 'http://192.168.6.144:3000'
+      APP_URL: 'http://192.168.6.107:3000'
 
   # The postgres database.
   db:

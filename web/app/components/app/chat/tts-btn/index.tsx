@@ -1,37 +1,49 @@
 'use client'
 import React from 'react'
 import { t } from 'i18next'
+import { useContext } from 'use-context-selector'
 import s from './style.module.css'
 import TTSRecorder from './TTS.js'
+import { ToastContext } from '@/app/components/base/toast'
 import Tooltip from '@/app/components/base/tooltip'
 type ITtsBtnProps = {
   value: string
   className?: string
 }
+const ttsRecorder = new TTSRecorder()
 
 const TtsBtn = ({ value, className }: ITtsBtnProps) => {
-  const ttsRecorder = new TTSRecorder()
-  const [status, setStatus] = React.useState('')
-  const [query, setQuery] = React.useState('')
+  const { notify } = useContext(ToastContext)
+  const [status, setStatus] = React.useState('init')
+  const logError = (message: string) => {
+    notify({ type: 'error', message, duration: 3000 })
+  }
+  const logSucc = (message: string) => {
+    notify({ type: 'success', message, duration: 3000 })
+  }
   const handleTts = () => {
-    setStatus(ttsRecorder.status)
-    setQuery(ttsRecorder.text)
-    if (query === value && status === 'play') {
-      ttsRecorder.stop()
-      return
-    }
+    console.log(status, ttsRecorder.status)
+    // if (query !== value) {
+    //   setQuery(value)
+    //   ttsRecorder.stop()
+    //   setStatus('init')
+    // }
     ttsRecorder.setParams({
       text: value,
     } as any)
-
-    if (['init', 'endPlay', 'errorTTS'].includes(status))
+    if (['init', 'endPlay', 'errorTTS', 'ttsing'].includes(status)) {
       ttsRecorder.start()
-    else if (status === 'play')
+      console.log('start')
+    }
+    else {
       ttsRecorder.stop()
-    // ttsRecorder.onWillStatusChange = (os, s) => {
-    //   console.log(os, s)
-    //   // setStatus(s)
-    // }
+      setStatus('init')
+      console.log('stop')
+    }
+
+    ttsRecorder.onWillStatusChange = (oldStatus, status) => {
+      setStatus(status)
+    }
   }
   return (
     <div className={`${className}`}>

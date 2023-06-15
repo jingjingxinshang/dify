@@ -1,26 +1,3 @@
-/*
- * @Autor: lycheng
- * @Date: 2020-01-13 16:12:22
- */
-/**
- * Created by iflytek on 2019/11/19.
- *
- * 在线语音合成调用demo
- * 此demo只是一个简单的调用示例，不适合用到实际生产环境中
- *
- * 在线语音合成 WebAPI 接口调用示例 接口文档（必看）：https://www.xfyun.cn/doc/tts/online_tts/API.html
- * 错误码链接：
- * https://www.xfyun.cn/doc/tts/online_tts/API.html
- * https://www.xfyun.cn/document/error-code （code返回错误码时必看）
- *
- */
-
-// 1. websocket连接：判断浏览器是否兼容，获取websocket url并连接，这里为了方便本地生成websocket url
-// 2. 连接websocket，向websocket发送数据，实时接收websocket返回数据
-// 3. 处理websocket返回数据为浏览器可以播放的音频数据
-// 4. 播放音频数据
-// ps: 该示例用到了es6中的一些语法，建议在chrome下运行
-
 import { Base64 } from 'js-base64'
 import TranscodeAudio from './transcode.worker.js'
 import { APP_ID, getWebsocketUrl } from './xunfei.js'
@@ -48,14 +25,13 @@ class TTSRecorder {
     this.appId = appId
     this.audioData = []
     this.rawAudioData = []
-    this.isPlaying = false // 添加一个播放状态的标志
     this.audioDataOffset = 0
     this.status = 'init'
     transWorker.onmessage = (e) => {
       this.audioData.push(...e.data.data)
       this.rawAudioData.push(...e.data.rawAudioData)
     }
-    this.onWillStatusChange = undefined
+    this.onWillStatusChange = (oldStatus, status) => {}
   }
 
   // 修改录音听写状态
@@ -79,6 +55,7 @@ class TTSRecorder {
   connectWebSocket() {
     this.setStatus('ttsing')
     return getWebsocketUrl().then((url) => {
+      console.log('url', url)
       let ttsWS
       if ('WebSocket' in window) {
         ttsWS = new WebSocket(url)
@@ -191,8 +168,9 @@ class TTSRecorder {
 
   // 重置音频数据
   resetAudio() {
-    this.audioStop()
+    console.log('我执行了')
     this.setStatus('init')
+    this.audioStop()
     this.audioDataOffset = 0
     this.audioData = []
     this.rawAudioData = []
@@ -216,6 +194,10 @@ class TTSRecorder {
     const audioData = this.audioData.slice(this.audioDataOffset)
     // console.log('audioPlay', audioData)
     this.audioDataOffset += audioData.length
+    console.log('audioPlay', audioData.length)
+    if (audioData.length === 0)
+      return
+
     const audioBuffer = this.audioContext.createBuffer(1, audioData.length, 22050)
     const nowBuffering = audioBuffer.getChannelData(0)
     if (audioBuffer.copyToChannel) {
@@ -239,7 +221,6 @@ class TTSRecorder {
       else
         this.audioStop()
     }
-    this.isPlaying = true // 设置播放状态为true
   }
 
   // 音频播放结束
@@ -255,7 +236,6 @@ class TTSRecorder {
         console.log(e)
       }
     }
-    this.isPlaying = false // 设置播放状态为false
   }
 
   start() {
@@ -272,6 +252,7 @@ class TTSRecorder {
   stop() {
     this.audioStop()
     this.resetAudio()
+    this.audioInit()
   }
 }
 export default TTSRecorder
