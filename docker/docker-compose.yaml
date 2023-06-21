@@ -99,6 +99,7 @@ services:
       SENTRY_TRACES_SAMPLE_RATE: 1.0
       # The sample rate for Sentry profiles. Default: `1.0`
       SENTRY_PROFILES_SAMPLE_RATE: 1.0
+      OPENAI_API_BASE: 'https://ai.dafee.wang/v1'
     depends_on:
       - db
       - redis
@@ -146,6 +147,7 @@ services:
       VECTOR_STORE: weaviate
       WEAVIATE_ENDPOINT: http://weaviate:8080
       WEAVIATE_API_KEY: WVF5YThaHlkYwhGUSmCRgsX3tD5ngdN8pkih
+      OPENAI_API_BASE: 'https://ai.dafee.wang/v1'
     depends_on:
       - db
       - redis
