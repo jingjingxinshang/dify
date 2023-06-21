@@ -31,7 +31,7 @@ const ACCEPTS = [
 ]
 
 const MAX_SIZE = 300 * 1024 * 1024
-const BATCH_COUNT = 5
+const BATCH_COUNT = 100
 
 const FileUploader = ({
   fileList,
