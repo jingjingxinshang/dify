@@ -27,7 +27,7 @@ const ACCEPTS = [
   '.csv',
 ]
 
-const MAX_SIZE = 15 * 1024 * 1024
+const MAX_SIZE = 300 * 1024 * 1024
 
 const FileUploader = ({ file, onFileUpdate }: IFileUploaderProps) => {
   const { t } = useTranslation()
