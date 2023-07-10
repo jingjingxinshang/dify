@@ -8,7 +8,6 @@ import { useContext } from 'use-context-selector'
 import produce from 'immer'
 import { useBoolean, useGetState } from 'ahooks'
 import AppUnavailable from '../../base/app-unavailable'
-import TTSRecorder from '../../app/chat/tts-btn/TTS'
 import useConversation from './hooks/use-conversation'
 import s from './style.module.css'
 import { ToastContext } from '@/app/components/base/toast'
@@ -475,6 +474,7 @@ const Main: FC<IMainProps> = ({
         setChatList(newListWithAnswer)
       },
       async onCompleted(hasError?: boolean) {
+        setResponsingFalse()
         if (hasError)
           return
 
@@ -487,25 +487,6 @@ const Main: FC<IMainProps> = ({
         resetNewConversationInputs()
         setChatNotStarted()
         setCurrConversationId(tempNewConversationId, appId, true)
-        console.log('加载完了', responseItem)
-        const ttsRecorder = new TTSRecorder()
-        ttsRecorder.setParams({
-          text: responseItem.content,
-        } as any)
-        if (['init', 'endPlay', 'errorTTS', 'ttsing'].includes(ttsRecorder.status)) {
-          ttsRecorder.start()
-          setAbortResponsing(true)
-          console.log('start')
-        }
-        else {
-          ttsRecorder.stop()
-          console.log('stop')
-        }
-        ttsRecorder.onWillStatusChange = (status) => {
-          console.log(status)
-          if (status === 'endPlay')
-            setAbortResponsing(false)
-        }
         if (suggestedQuestionsAfterAnswerConfig?.enabled && !getHasStopResponded()) {
           const { data }: any = await fetchSuggestedQuestions(responseItem.id, isInstalledApp, installedAppInfo?.id)
           setSuggestQuestions(data)

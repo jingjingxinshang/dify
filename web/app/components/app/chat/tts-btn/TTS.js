@@ -9,7 +9,7 @@ class TTSRecorder {
     speed = 50,
     voice = 50,
     pitch = 50,
-    voiceName = 'x4_lingxiaoxuan_en',
+    voiceName = 'aisjinger',
     appId = APP_ID,
     text = '',
     tte = 'UTF8',

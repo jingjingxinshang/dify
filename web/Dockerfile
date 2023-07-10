@@ -6,14 +6,14 @@ ENV EDITION SELF_HOSTED
 ENV DEPLOY_ENV PRODUCTION
 ENV CONSOLE_URL http://127.0.0.1:5001
 ENV APP_URL http://127.0.0.1:5001
-
+ENV TTSSTACK TTSSTACK
 EXPOSE 3000
 
 WORKDIR /app/web
 
 COPY package.json /app/web/package.json
 
-RUN npm install --only=prod
+RUN npm install --only=prod --registry=https://registry.npm.taobao.org
 
 COPY . /app/web/
 
