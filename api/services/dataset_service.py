@@ -7,7 +7,6 @@ from typing import Optional, List
 from extensions.ext_redis import redis_client
 from flask_login import current_user
 
-from core.index.index_builder import IndexBuilder
 from events.dataset_event import dataset_was_deleted
 from events.document_event import document_was_deleted
 from extensions.ext_database import db
@@ -36,6 +35,7 @@ class DatasetService:
             permission_filter = Dataset.permission == 'all_team_members'
         datasets = Dataset.query.filter(
             db.and_(Dataset.provider == provider, Dataset.tenant_id == tenant_id, permission_filter)) \
+            .order_by(Dataset.created_at.desc()) \
             .paginate(
             page=page,
             per_page=per_page,
@@ -386,8 +386,6 @@ class DocumentService:
 
             dataset.indexing_technique = document_data["indexing_technique"]
 
-        if dataset.indexing_technique == 'high_quality':
-            IndexBuilder.get_default_service_context(dataset.tenant_id)
         documents = []
         batch = time.strftime('%Y%m%d%H%M%S') + str(random.randint(100000, 999999))
         if 'original_document_id' in document_data and document_data["original_document_id"]:

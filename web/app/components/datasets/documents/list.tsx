@@ -57,7 +57,7 @@ export const useIndexStatus = () => {
   return {
     queuing: { color: 'orange', text: t('datasetDocuments.list.status.queuing') }, // waiting
     indexing: { color: 'blue', text: t('datasetDocuments.list.status.indexing') }, // indexing splitting parsing cleaning
-    paused: { color: 'orange', text: t('datasetDocuments.list.status.parsed') }, // paused
+    paused: { color: 'orange', text: t('datasetDocuments.list.status.paused') }, // paused
     error: { color: 'red', text: t('datasetDocuments.list.status.error') }, // error
     available: { color: 'green', text: t('datasetDocuments.list.status.available') }, // completed，archived = false，enabled = true
     enabled: { color: 'green', text: t('datasetDocuments.list.status.enabled') }, // completed，archived = false，enabled = true
@@ -309,7 +309,7 @@ const DocumentList: FC<IDocumentListProps> = ({ documents = [], datasetId, onUpd
               key={doc.id}
               className={'border-b border-gray-200 h-8 hover:bg-gray-50 cursor-pointer'}
               onClick={() => {
-                router.push(`datasets/${datasetId}/documents/${doc.id}`)
+                router.push(`/datasets/${datasetId}/documents/${doc.id}`)
               }}>
               <td className='text-left align-middle text-gray-500 text-xs'>{doc.position}</td>
               <td className={s.tdValue}>

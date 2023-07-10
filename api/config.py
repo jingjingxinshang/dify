@@ -80,7 +80,7 @@ class Config:
         self.CONSOLE_URL = get_env('CONSOLE_URL')
         self.API_URL = get_env('API_URL')
         self.APP_URL = get_env('APP_URL')
-        self.CURRENT_VERSION = "0.3.5"
+        self.CURRENT_VERSION = "0.3.7"
         self.COMMIT_SHA = get_env('COMMIT_SHA')
         self.EDITION = "SELF_HOSTED"
         self.DEPLOY_ENV = get_env('DEPLOY_ENV')
@@ -188,11 +188,13 @@ class Config:
         # For temp use only
         # set default LLM provider, default is 'openai', support `azure_openai`
         self.DEFAULT_LLM_PROVIDER = get_env('DEFAULT_LLM_PROVIDER')
+
         # notion import setting
         self.NOTION_CLIENT_ID = get_env('NOTION_CLIENT_ID')
         self.NOTION_CLIENT_SECRET = get_env('NOTION_CLIENT_SECRET')
         self.NOTION_INTEGRATION_TYPE = get_env('NOTION_INTEGRATION_TYPE')
         self.NOTION_INTERNAL_SECRET = get_env('NOTION_INTERNAL_SECRET')
+        self.NOTION_INTEGRATION_TOKEN = get_env('NOTION_INTEGRATION_TOKEN')
 
 
 class CloudEditionConfig(Config):

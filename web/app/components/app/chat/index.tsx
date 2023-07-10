@@ -3,6 +3,7 @@ import type { FC } from 'react'
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useContext } from 'use-context-selector'
 import cn from 'classnames'
+import Recorder from 'js-audio-recorder'
 import { HandThumbDownIcon, HandThumbUpIcon } from '@heroicons/react/24/outline'
 import { UserCircleIcon } from '@heroicons/react/24/solid'
 import { useTranslation } from 'react-i18next'
@@ -19,7 +20,11 @@ import AppContext from '@/context/app-context'
 import { Markdown } from '@/app/components/base/markdown'
 import { formatNumber } from '@/utils/format'
 import useBreakpoints, { MediaType } from '@/hooks/use-breakpoints'
-import IatRecorder from '@/app/components/app/chat/tts-btn/IAT.js'
+import VoiceInput from '@/app/components/base/voice-input'
+import { Microphone01 } from '@/app/components/base/icons/src/vender/line/mediaAndDevices'
+import { Microphone01 as Microphone01Solid } from '@/app/components/base/icons/src/vender/solid/mediaAndDevices'
+import { XCircle } from '@/app/components/base/icons/src/vender/solid/general'
+
 const stopIcon = (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path fillRule="evenodd" clipRule="evenodd" d="M7.00004 0.583313C3.45621 0.583313 0.583374 3.45615 0.583374 6.99998C0.583374 10.5438 3.45621 13.4166 7.00004 13.4166C10.5439 13.4166 13.4167 10.5438 13.4167 6.99998C13.4167 3.45615 10.5439 0.583313 7.00004 0.583313ZM4.73029 4.98515C4.66671 5.10993 4.66671 5.27328 4.66671 5.59998V8.39998C4.66671 8.72668 4.66671 8.89003 4.73029 9.01481C4.78621 9.12457 4.87545 9.21381 4.98521 9.26973C5.10999 9.33331 5.27334 9.33331 5.60004 9.33331H8.40004C8.72674 9.33331 8.89009 9.33331 9.01487 9.26973C9.12463 9.21381 9.21387 9.12457 9.2698 9.01481C9.33337 8.89003 9.33337 8.72668 9.33337 8.39998V5.59998C9.33337 5.27328 9.33337 5.10993 9.2698 4.98515C9.21387 4.87539 9.12463 4.78615 9.01487 4.73023C8.89009 4.66665 8.72674 4.66665 8.40004 4.66665H5.60004C5.27334 4.66665 5.10999 4.66665 4.98521 4.73023C4.87545 4.78615 4.78621 4.87539 4.73029 4.98515Z" fill="#667085" />
@@ -59,6 +64,7 @@ export type IChatProps = {
   controlFocus?: number
   isShowSuggestion?: boolean
   suggestionList?: string[]
+  isShowSpeechToText?: boolean
 }
 
 export type MessageMore = {
@@ -200,7 +206,7 @@ const Answer: FC<IAnswerProps> = ({ item, feedbackDisabled = false, isHideFeedba
     return (
       <Tooltip
         selector={`user-feedback-${randomString(16)}`}
-        content={(isWebScene || (!isUserFeedback && !isWebScene)) ? isLike ? '取消赞同' : '取消反对' : (!isWebScene && isUserFeedback) ? `用户表示${isLike ? '赞同' : '反对'}` : ''}
+        content={((isWebScene || (!isUserFeedback && !isWebScene)) ? isLike ? t('appDebug.operation.cancelAgree') : t('appDebug.operation.cancelDisagree') : (!isWebScene && isUserFeedback) ? `${t('appDebug.operation.userAction')}${isLike ? t('appDebug.operation.agree') : t('appDebug.operation.disagree')}` : '') as string}
       >
         <div
           className={`relative box-border flex items-center justify-center h-7 w-7 p-0.5 rounded-lg bg-white cursor-pointer text-gray-500 hover:text-gray-800 ${(!isWebScene && isUserFeedback) ? '!cursor-default' : ''}`}
@@ -352,14 +358,12 @@ const Answer: FC<IAnswerProps> = ({ item, feedbackDisabled = false, isHideFeedba
                 }
               </div>
               <div className='absolute top-[-14px] right-[-14px] flex flex-row justify-end gap-1'>
-                {/* <TtsBtn
-                  value={content}
-                  className={cn(s.copyBtn, 'mr-1')}
-                /> */}
-                <CopyBtn
-                  value={content}
-                  className={cn(s.copyBtn, 'mr-1')}
-                />
+                {!item.isOpeningStatement && (
+                  <CopyBtn
+                    value={content}
+                    className={cn(s.copyBtn, 'mr-1')}
+                  />
+                )}
                 {!feedbackDisabled && !item.feedbackDisabled && renderItemOperation(displayScene !== 'console')}
                 {/* Admin feedback is displayed only in the background. */}
                 {!feedbackDisabled && renderFeedbackRating(localAdminFeedback?.rating, false, false)}
@@ -404,7 +408,6 @@ const Question: FC<IQuestionProps> = ({ id, content, more, useCurrentUserAvatar 
     </div>
   )
 }
-const iatRecorder = new IatRecorder()
 const Chat: FC<IChatProps> = ({
   chatList,
   feedbackDisabled = false,
@@ -423,6 +426,7 @@ const Chat: FC<IChatProps> = ({
   controlFocus,
   isShowSuggestion,
   suggestionList,
+  isShowSpeechToText,
 }) => {
   const { t } = useTranslation()
   const { notify } = useContext(ToastContext)
@@ -476,65 +480,9 @@ const Chat: FC<IChatProps> = ({
     }
   }
 
-  // iat  语音处理
-
-  const [iatStatus, setIatStatus] = useState(iatRecorder.status)
-  const [isRecordingStopped, setRecordingStopped] = useState(false)
-  useEffect(() => {
-    if (iatStatus === 'ing') {
-      console.log('ing')
-      notify({ type: 'success', message: '开始语音识别', duration: 3000 })
-    }
-    else if (iatStatus === 'init') {
-      // 初始化阶段
-      console.log('初始化阶段')
-    }
-    else {
-      if (iatStatus === 'null')
-        return
-      // 结束
-      if (iatRecorder.audioContext && iatRecorder.resultText === '') {
-        if (!isRecordingStopped) {
-          console.log('text=== ""', iatStatus)
-          notify({ type: 'error', message: '未识别到语音', duration: 3000 })
-          return
-        }
-        // 处理手动停止录音的情况
-        console.log('手动停止录音')
-        return
-      }
-
-      notify({ type: 'success', message: '语音识别结束', duration: 3000 })
-      console.log('结束')
-      handleSend()
-      iatRecorder.stop()
-    }
-  }, [iatStatus])
-  const handleIATStart = (e: any) => {
-    console.log('iat,', e)
-
-    if (iatStatus === 'ing') {
-      console.log('我在这里, ing', iatStatus)
-      iatRecorder.stop()
-      setRecordingStopped(true) // 设置为手动停止录音
-      return
-    }
-    console.log(iatRecorder)
-    iatRecorder.start()
-    setRecordingStopped(false)
-    iatRecorder.onWillStatusChange = (oldStatus: string, status: string) => {
-      console.log(status)
-      setIatStatus(status)
-    }
-    iatRecorder.onTextChange = function (text: any) {
-      console.log(text)
-      setQuery(text)
-    }
-  }
   const media = useBreakpoints()
   const isMobile = media === MediaType.mobile
   const sendBtn = <div id='sendBTN' className={cn(!(!query || query.trim() === '') && s.sendBtnActive, `${s.sendBtn} w-8 h-8 cursor-pointer rounded-md`)} onClick={handleSend}></div>
-  const iatBtn = <div className={(`${s.iatBtn} w-4 h-4 cursor-pointer rounded-md mr-3`)} onClick={handleIATStart}></div>
   const suggestionListRef = useRef<HTMLDivElement>(null)
   const [hasScrollbar, setHasScrollbar] = useState(false)
   useLayoutEffect(() => {
@@ -545,8 +493,17 @@ const Chat: FC<IChatProps> = ({
     }
   }, [suggestionList])
 
+  const [voiceInputShow, setVoiceInputShow] = useState(false)
+  const handleVoiceInputShow = () => {
+    (Recorder as any).getPermission().then(() => {
+      setVoiceInputShow(true)
+    }, () => {
+      logError(t('common.voiceInput.notAllow'))
+    })
+  }
+
   return (
-    <div className={cn(!feedbackDisabled && 'px-3.5', 'h-full')}>
+    <div className={cn('px-3.5', 'h-full')}>
       {/* Chat List */}
       <div className="h-full space-y-[30px]">
         {chatList.map((item) => {
@@ -622,14 +579,34 @@ const Chat: FC<IChatProps> = ({
               />
               <div className="absolute top-0 right-2 flex items-center h-[48px]">
                 <div className={`${s.count} mr-4 h-5 leading-5 text-sm bg-gray-50 text-gray-500`}>{query.trim().length}</div>
+                {
+                  query
+                    ? (
+                      <div className='flex justify-center items-center w-8 h-8 cursor-pointer hover:bg-gray-100 rounded-lg' onClick={() => setQuery('')}>
+                        <XCircle className='w-4 h-4 text-[#98A2B3]' />
+                      </div>
+                    )
+                    : isShowSpeechToText
+                      ? (
+                        <div
+                          className='group flex justify-center items-center w-8 h-8 hover:bg-primary-50 rounded-lg cursor-pointer'
+                          onClick={handleVoiceInputShow}
+                        >
+                          <Microphone01 className='block w-4 h-4 text-gray-500 group-hover:hidden' />
+                          <Microphone01Solid className='hidden w-4 h-4 text-primary-600 group-hover:block' />
+                        </div>
+                      )
+                      : null
+                }
+                <div className='mx-2 w-[1px] h-4 bg-black opacity-5' />
                 {isMobile
                   ? <>
-                    {iatBtn}
+                    {/* {iatBtn} */}
                     {sendBtn}
                   </>
                   : (
                     <>
-                      <Tooltip
+                      {/* <Tooltip
                         selector='iat-tip'
                         htmlContent={
                           <div>
@@ -638,7 +615,7 @@ const Chat: FC<IChatProps> = ({
                         }
                       >
                         {iatBtn}
-                      </Tooltip>
+                      </Tooltip> */}
                       <Tooltip
                         selector='send-tip'
                         htmlContent={
@@ -654,6 +631,14 @@ const Chat: FC<IChatProps> = ({
 
                   )}
               </div>
+              {
+                voiceInputShow && (
+                  <VoiceInput
+                    onCancel={() => setVoiceInputShow(false)}
+                    onConverted={text => setQuery(text)}
+                  />
+                )
+              }
             </div>
           </div>
         )
