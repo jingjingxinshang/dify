@@ -1,5 +1,4 @@
 import I18nServer from './components/i18n-server'
-
 import { getLocaleOnServer } from '@/i18n/server'
 
 import './styles/globals.css'

@@ -1,6 +1,6 @@
 {
   "name": "dify-web",
-  "version": "0.3.7",
+  "version": "0.3.10",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,7 +10,8 @@
     "fix": "next lint --fix",
     "eslint-fix": "eslint --fix",
     "prepare": "cd ../ && husky install ./web/.husky",
-    "gen-icons": "node ./app/components/base/icons/script.js"
+    "gen-icons": "node ./app/components/base/icons/script.js",
+    "uglify-embed": "node ./bin/uglify-embed"
   },
   "dependencies": {
     "@babel/runtime": "^7.22.3",
@@ -52,7 +53,7 @@
     "katex": "^0.16.7",
     "lodash-es": "^4.17.21",
     "negotiator": "^0.6.3",
-    "next": "^13.4.7",
+    "next": "13.3.0",
     "qs": "^6.11.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -82,7 +83,8 @@
     "typescript": "4.9.5",
     "use-context-selector": "^1.4.1",
     "websocket": "^1.0.34",
-    "worker-loader": "^3.0.8"
+    "worker-loader": "^3.0.8",
+    "lamejs": "1.2.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^0.36.0",
@@ -97,7 +99,8 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "lint-staged": "^13.2.2",
     "miragejs": "^0.1.47",
-    "postcss": "^8.4.21"
+    "postcss": "^8.4.21",
+    "uglify-js": "^3.17.4"
   },
   "lint-staged": {
     "**/*.js?(x)": [

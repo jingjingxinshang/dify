@@ -1,5 +1,5 @@
 import React from 'react'
-import classNames from 'classnames'
+import cn from 'classnames'
 import Forms from './forms'
 import Header from './_header'
 import style from './page.module.css'
@@ -7,7 +7,7 @@ import style from './page.module.css'
 const SignIn = () => {
   return (
     <>
-      <div className={classNames(
+      <div className={cn(
         style.background,
         'flex w-full min-h-screen',
         'sm:p-4 lg:p-8',
@@ -15,7 +15,7 @@ const SignIn = () => {
         'justify-center lg:justify-start',
       )}>
         <div className={
-          classNames(
+          cn(
             'flex w-full flex-col bg-white shadow rounded-2xl shrink-0',
             'space-between',
           )

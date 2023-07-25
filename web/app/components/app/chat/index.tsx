@@ -65,6 +65,7 @@ export type IChatProps = {
   isShowSuggestion?: boolean
   suggestionList?: string[]
   isShowSpeechToText?: boolean
+  answerIconClassName?: string
 }
 
 export type MessageMore = {
@@ -174,10 +175,11 @@ type IAnswerProps = {
   onSubmitAnnotation?: SubmitAnnotationFunc
   displayScene: DisplayScene
   isResponsing?: boolean
+  answerIconClassName?: string
 }
 
 // The component needs to maintain its own state to control whether to display input component
-const Answer: FC<IAnswerProps> = ({ item, feedbackDisabled = false, isHideFeedbackEdit = false, onFeedback, onSubmitAnnotation, displayScene = 'web', isResponsing }) => {
+const Answer: FC<IAnswerProps> = ({ item, feedbackDisabled = false, isHideFeedbackEdit = false, onFeedback, onSubmitAnnotation, displayScene = 'web', isResponsing, answerIconClassName }) => {
   const { id, content, more, feedback, adminFeedback, annotation: initAnnotation } = item
   const [showEdit, setShowEdit] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -292,7 +294,7 @@ const Answer: FC<IAnswerProps> = ({ item, feedbackDisabled = false, isHideFeedba
   return (
     <div key={id}>
       <div className='flex items-start'>
-        <div className={`${s.answerIcon} w-10 h-10 shrink-0`}>
+        <div className={`${s.answerIcon} ${answerIconClassName} w-10 h-10 shrink-0`}>
           {isResponsing
             && <div className={s.typeingIcon}>
               <LoadingAnim type='avatar' />
@@ -427,6 +429,7 @@ const Chat: FC<IChatProps> = ({
   isShowSuggestion,
   suggestionList,
   isShowSpeechToText,
+  answerIconClassName,
 }) => {
   const { t } = useTranslation()
   const { notify } = useContext(ToastContext)
@@ -472,7 +475,7 @@ const Chat: FC<IChatProps> = ({
     }
   }
 
-  const haneleKeyDown = (e: any) => {
+  const handleKeyDown = (e: any) => {
     isUseInputMethod.current = e.nativeEvent.isComposing
     if (e.code === 'Enter' && !e.shiftKey) {
       setQuery(query.replace(/\n$/, ''))
@@ -518,6 +521,7 @@ const Chat: FC<IChatProps> = ({
               onSubmitAnnotation={onSubmitAnnotation}
               displayScene={displayScene ?? 'web'}
               isResponsing={isResponsing && isLast}
+              answerIconClassName={answerIconClassName}
             />
           }
           return <Question key={item.id} id={item.id} content={item.content} more={item.more} useCurrentUserAvatar={useCurrentUserAvatar} />
@@ -571,7 +575,7 @@ const Chat: FC<IChatProps> = ({
                 value={query}
                 onChange={handleContentChange}
                 onKeyUp={handleKeyUp}
-                onKeyDown={haneleKeyDown}
+                onKeyDown={handleKeyDown}
                 minHeight={48}
                 autoFocus
                 controlFocus={controlFocus}
