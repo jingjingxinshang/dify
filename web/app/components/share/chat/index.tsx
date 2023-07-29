@@ -43,6 +43,8 @@ import Confirm from '@/app/components/base/confirm'
 export type IMainProps = {
   isInstalledApp?: boolean
   installedAppInfo?: InstalledApp
+  isSupportPlugin?: boolean
+  isUniversalChat?: boolean
 }
 
 const Main: FC<IMainProps> = ({
@@ -88,6 +90,7 @@ const Main: FC<IMainProps> = ({
     pinnedConversationList,
     setPinnedConversationList,
     currConversationId,
+    getCurrConversationId,
     setCurrConversationId,
     getConversationIdFromStorage,
     isNewConversation,
@@ -212,7 +215,7 @@ const Main: FC<IMainProps> = ({
     }
 
     // update chat list of current conversation
-    if (!isNewConversation && !conversationIdChangeBecauseOfNew && !isResponsing) {
+    if (!isNewConversation && !conversationIdChangeBecauseOfNew) {
       fetchChatList(currConversationId, isInstalledApp, installedAppInfo?.id).then((res: any) => {
         const { data } = res
         const newChatList: IChatItem[] = generateNewChatListWithOpenstatement(notSyncToStateIntroduction, notSyncToStateInputs)
@@ -421,11 +424,8 @@ const Main: FC<IMainProps> = ({
   const [suggestQuestions, setSuggestQuestions] = useState<string[]>([])
   const [messageTaskId, setMessageTaskId] = useState('')
   const [hasStopResponded, setHasStopResponded, getHasStopResponded] = useGetState(false)
-  const [abortResponsing, setAbortResponsing] = useState(false)
-  useEffect(() => {
-    if (!abortResponsing)
-      setResponsingFalse()
-  }, [abortResponsing])
+  const [isResponsingConIsCurrCon, setIsResponsingConCurrCon, getIsResponsingConIsCurrCon] = useGetState(true)
+
   const handleSend = async (message: string) => {
     if (isResponsing) {
       notify({ type: 'info', message: t('appDebug.errorMessage.waitForResponse') })
@@ -461,12 +461,13 @@ const Main: FC<IMainProps> = ({
       content: '',
       isAnswer: true,
     }
-
-    let tempNewConversationId = ''
+    const prevTempNewConversationId = getCurrConversationId() || '-1'
+    let tempNewConversationId = prevTempNewConversationId
 
     setHasStopResponded(false)
     setResponsingTrue()
     setIsShowSuggestion(false)
+    setIsResponsingConCurrCon(true)
     sendChatMessage(data, {
       getAbortController: (abortController) => {
         setAbortController(abortController)
@@ -478,6 +479,11 @@ const Main: FC<IMainProps> = ({
           tempNewConversationId = newConversationId
 
         setMessageTaskId(taskId)
+        // has switched to other conversation
+        if (prevTempNewConversationId !== getCurrConversationId()) {
+          setIsResponsingConCurrCon(false)
+          return
+        }
         // closesure new list is outdated.
         const newListWithAnswer = produce(
           getChatList().filter(item => item.id !== responseItem.id && item.id !== placeholderAnswerId),
@@ -503,7 +509,7 @@ const Main: FC<IMainProps> = ({
         resetNewConversationInputs()
         setChatNotStarted()
         setCurrConversationId(tempNewConversationId, appId, true)
-        if (suggestedQuestionsAfterAnswerConfig?.enabled && !getHasStopResponded()) {
+        if (getIsResponsingConIsCurrCon() && suggestedQuestionsAfterAnswerConfig?.enabled && !getHasStopResponded()) {
           const { data }: any = await fetchSuggestedQuestions(responseItem.id, isInstalledApp, installedAppInfo?.id)
           setSuggestQuestions(data)
           setIsShowSuggestion(true)
@@ -632,7 +638,7 @@ const Main: FC<IMainProps> = ({
                     isHideFeedbackEdit
                     onFeedback={handleFeedback}
                     isResponsing={isResponsing}
-                    canStopResponsing={!!messageTaskId}
+                    canStopResponsing={!!messageTaskId && isResponsingConIsCurrCon}
                     abortResponsing={async () => {
                       await stopChatMessageResponding(appId, messageTaskId, isInstalledApp, installedAppInfo?.id)
                       setHasStopResponded(true)
