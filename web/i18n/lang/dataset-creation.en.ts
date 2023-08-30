@@ -23,10 +23,10 @@ const translation = {
       title: 'Upload text file',
       button: 'Drag and drop file, or',
       browse: 'Browse',
-      tip: 'Supports txt, html, markdown, xlsx, and pdf. Max 15MB each.',
+      tip: 'Supports txt, html, markdown, xlsx, and pdf. Max {{size}}MB each.',
       validation: {
         typeError: 'File type not supported',
-        size: 'File too large. Maximum is 15MB',
+        size: 'File too large. Maximum is {{size}}MB',
         count: 'Multiple files not supported',
       },
       cancel: 'Cancel',
@@ -49,6 +49,7 @@ const translation = {
       confirmButton: 'Create',
       failed: 'Creation failed',
     },
+    overCountLimit: 'All your documents have overed limit {{countLimit}}.',
   },
   stepTwo: {
     segmentation: 'Segmentation settings',
@@ -75,6 +76,7 @@ const translation = {
     economicalTip: 'Use offline vector engines, keyword indexes, etc. to reduce accuracy without spending tokens',
     QATitle: 'Segmenting in Question & Answer format',
     QATip: 'Enable this option will consume more tokens',
+    QALanguage: 'Segment using',
     emstimateCost: 'Estimation',
     emstimateSegment: 'Estimated segments',
     segmentCount: 'segments',

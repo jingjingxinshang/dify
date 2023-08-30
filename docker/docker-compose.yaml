@@ -2,7 +2,7 @@ version: '3.1'
 services:
   # API service
   api:
-    image: f4d8943ce7e333430b0a3c025dc4bdfb994b2fc343f33b53985aa822ce36790c
+    image: langgenius/dify-api:0.3.18
     restart: always
     environment:
       # Startup mode, 'api' starts the API server.
@@ -125,7 +125,7 @@ services:
   # worker service
   # The Celery worker for processing the queue.
   worker:
-    image: f4d8943ce7e333430b0a3c025dc4bdfb994b2fc343f33b53985aa822ce36790c
+    image: langgenius/dify-api:0.3.18
     restart: always
     environment:
       # Startup mode, 'worker' starts the Celery worker for processing the queue.
@@ -178,7 +178,7 @@ services:
 
   # Frontend web application.
   web:
-    image: 417986c5212fcf8c4bca7b7e53a0a51fe86ef8a6299d4707d240320083361bf2
+    image: langgenius/dify-web:0.3.18
     restart: always
     environment:
       TTSSTACK: 'true'

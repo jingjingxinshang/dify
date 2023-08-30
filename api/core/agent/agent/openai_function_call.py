@@ -6,7 +6,8 @@ from langchain.agents.openai_functions_agent.base import _parse_ai_message, \
 from langchain.callbacks.base import BaseCallbackManager
 from langchain.callbacks.manager import Callbacks
 from langchain.prompts.chat import BaseMessagePromptTemplate
-from langchain.schema import AgentAction, AgentFinish, SystemMessage, BaseLanguageModel
+from langchain.schema import AgentAction, AgentFinish, SystemMessage
+from langchain.schema.language_model import BaseLanguageModel
 from langchain.tools import BaseTool
 
 from core.agent.agent.calc_token_mixin import ExceededLLMTokensLimitError
@@ -44,14 +45,18 @@ class AutoSummarizingOpenAIFunctionCallAgent(OpenAIFunctionsAgent, OpenAIFunctio
         :return:
         """
         original_max_tokens = self.llm.max_tokens
-        self.llm.max_tokens = 15
+        self.llm.max_tokens = 40
 
         prompt = self.prompt.format_prompt(input=query, agent_scratchpad=[])
         messages = prompt.to_messages()
 
-        predicted_message = self.llm.predict_messages(
-            messages, functions=self.functions, callbacks=None
-        )
+        try:
+            predicted_message = self.llm.predict_messages(
+                messages, functions=self.functions, callbacks=None
+            )
+        except Exception as e:
+            new_exception = self.model_instance.handle_exceptions(e)
+            raise new_exception
 
         function_call = predicted_message.additional_kwargs.get("function_call", {})
 
@@ -84,7 +89,7 @@ class AutoSummarizingOpenAIFunctionCallAgent(OpenAIFunctionsAgent, OpenAIFunctio
 
         # summarize messages if rest_tokens < 0
         try:
-            messages = self.summarize_messages_if_needed(self.llm, messages, functions=self.functions)
+            messages = self.summarize_messages_if_needed(messages, functions=self.functions)
         except ExceededLLMTokensLimitError as e:
             return AgentFinish(return_values={"output": str(e)}, log=str(e))
 
@@ -92,6 +97,13 @@ class AutoSummarizingOpenAIFunctionCallAgent(OpenAIFunctionsAgent, OpenAIFunctio
             messages, functions=self.functions, callbacks=callbacks
         )
         agent_decision = _parse_ai_message(predicted_message)
+
+        if isinstance(agent_decision, AgentAction) and agent_decision.tool == 'dataset':
+            tool_inputs = agent_decision.tool_input
+            if isinstance(tool_inputs, dict) and 'query' in tool_inputs:
+                tool_inputs['query'] = kwargs['input']
+                agent_decision.tool_input = tool_inputs
+
         return agent_decision
 
     @classmethod

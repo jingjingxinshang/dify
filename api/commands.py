@@ -1,26 +1,33 @@
 import datetime
-import logging
+import json
+import math
 import random
 import string
 import time
 
 import click
 from flask import current_app
+from langchain.embeddings import OpenAIEmbeddings
 from werkzeug.exceptions import NotFound
 
+from core.embedding.cached_embedding import CacheEmbedding
 from core.index.index import IndexBuilder
+from core.model_providers.model_factory import ModelFactory
+from core.model_providers.models.embedding.openai_embedding import OpenAIEmbedding
+from core.model_providers.models.entity.model_params import ModelType
+from core.model_providers.providers.hosted import hosted_model_providers
+from core.model_providers.providers.openai_provider import OpenAIProvider
 from libs.password import password_pattern, valid_password, hash_password
 from libs.helper import email as email_validate
 from extensions.ext_database import db
 from libs.rsa import generate_key_pair
 from models.account import InvitationCode, Tenant
-from models.dataset import Dataset, DatasetQuery, Document, DocumentSegment
+from models.dataset import Dataset, DatasetQuery, Document
 from models.model import Account
 import secrets
 import base64
 
-from models.provider import Provider, ProviderName
-from services.provider_service import ProviderService
+from models.provider import Provider, ProviderType, ProviderQuotaType, ProviderModel
 
 
 @click.command('reset-password', help='Reset the account password.')
@@ -102,6 +109,7 @@ def reset_encrypt_key_pair():
     tenant.encrypt_public_key = generate_key_pair(tenant.id)
 
     db.session.query(Provider).filter(Provider.provider_type == 'custom').delete()
+    db.session.query(ProviderModel).delete()
     db.session.commit()
 
     click.echo(click.style('Congratulations! '
@@ -251,26 +259,40 @@ def clean_unused_dataset_indexes():
 
 @click.command('sync-anthropic-hosted-providers', help='Sync anthropic hosted providers.')
 def sync_anthropic_hosted_providers():
+    if not hosted_model_providers.anthropic:
+        click.echo(click.style('Anthropic hosted provider is not configured.', fg='red'))
+        return
+
     click.echo(click.style('Start sync anthropic hosted providers.', fg='green'))
     count = 0
+
+    new_quota_limit = hosted_model_providers.anthropic.quota_limit
 
     page = 1
     while True:
         try:
-            tenants = db.session.query(Tenant).order_by(Tenant.created_at.desc()).paginate(page=page, per_page=50)
+            providers = db.session.query(Provider).filter(
+                Provider.provider_name == 'anthropic',
+                Provider.provider_type == ProviderType.SYSTEM.value,
+                Provider.quota_type == ProviderQuotaType.TRIAL.value,
+                Provider.quota_limit != new_quota_limit
+            ).order_by(Provider.created_at.desc()).paginate(page=page, per_page=100)
         except NotFound:
             break
 
         page += 1
-        for tenant in tenants:
+        for provider in providers:
             try:
-                click.echo('Syncing tenant anthropic hosted provider: {}'.format(tenant.id))
-                ProviderService.create_system_provider(
-                    tenant,
-                    ProviderName.ANTHROPIC.value,
-                    current_app.config['ANTHROPIC_HOSTED_QUOTA_LIMIT'],
-                    True
-                )
+                click.echo('Syncing tenant anthropic hosted provider: {}, origin: limit {}, used {}'
+                           .format(provider.tenant_id, provider.quota_limit, provider.quota_used))
+                original_quota_limit = provider.quota_limit
+                division = math.ceil(new_quota_limit / 1000)
+
+                provider.quota_limit = new_quota_limit if original_quota_limit == 1000 \
+                    else original_quota_limit * division
+                provider.quota_used = division * provider.quota_used
+                db.session.commit()
+
                 count += 1
             except Exception as e:
                 click.echo(click.style(
@@ -281,6 +303,135 @@ def sync_anthropic_hosted_providers():
     click.echo(click.style('Congratulations! Synced {} anthropic hosted providers.'.format(count), fg='green'))
 
 
+@click.command('create-qdrant-indexes', help='Create qdrant indexes.')
+def create_qdrant_indexes():
+    click.echo(click.style('Start create qdrant indexes.', fg='green'))
+    create_count = 0
+
+    page = 1
+    while True:
+        try:
+            datasets = db.session.query(Dataset).filter(Dataset.indexing_technique == 'high_quality') \
+                .order_by(Dataset.created_at.desc()).paginate(page=page, per_page=50)
+        except NotFound:
+            break
+
+        page += 1
+        for dataset in datasets:
+            if dataset.index_struct_dict:
+                if dataset.index_struct_dict['type'] != 'qdrant':
+                    try:
+                        click.echo('Create dataset qdrant index: {}'.format(dataset.id))
+                        try:
+                            embedding_model = ModelFactory.get_embedding_model(
+                                tenant_id=dataset.tenant_id,
+                                model_provider_name=dataset.embedding_model_provider,
+                                model_name=dataset.embedding_model
+                            )
+                        except Exception:
+                            provider = Provider(
+                                id='provider_id',
+                                tenant_id=dataset.tenant_id,
+                                provider_name='openai',
+                                provider_type=ProviderType.CUSTOM.value,
+                                encrypted_config=json.dumps({'openai_api_key': 'TEST'}),
+                                is_valid=True,
+                            )
+                            model_provider = OpenAIProvider(provider=provider)
+                            embedding_model = OpenAIEmbedding(name="text-embedding-ada-002", model_provider=model_provider)
+                        embeddings = CacheEmbedding(embedding_model)
+
+                        from core.index.vector_index.qdrant_vector_index import QdrantVectorIndex, QdrantConfig
+
+                        index = QdrantVectorIndex(
+                            dataset=dataset,
+                            config=QdrantConfig(
+                                endpoint=current_app.config.get('QDRANT_URL'),
+                                api_key=current_app.config.get('QDRANT_API_KEY'),
+                                root_path=current_app.root_path
+                            ),
+                            embeddings=embeddings
+                        )
+                        if index:
+                            index.create_qdrant_dataset(dataset)
+                            index_struct = {
+                                "type": 'qdrant',
+                                "vector_store": {"class_prefix": dataset.index_struct_dict['vector_store']['class_prefix']}
+                            }
+                            dataset.index_struct = json.dumps(index_struct)
+                            db.session.commit()
+                            create_count += 1
+                        else:
+                            click.echo('passed.')
+                    except Exception as e:
+                        click.echo(
+                            click.style('Create dataset index error: {} {}'.format(e.__class__.__name__, str(e)), fg='red'))
+                        continue
+
+    click.echo(click.style('Congratulations! Create {} dataset indexes.'.format(create_count), fg='green'))
+
+
+@click.command('update-qdrant-indexes', help='Update qdrant indexes.')
+def update_qdrant_indexes():
+    click.echo(click.style('Start Update qdrant indexes.', fg='green'))
+    create_count = 0
+
+    page = 1
+    while True:
+        try:
+            datasets = db.session.query(Dataset).filter(Dataset.indexing_technique == 'high_quality') \
+                .order_by(Dataset.created_at.desc()).paginate(page=page, per_page=50)
+        except NotFound:
+            break
+
+        page += 1
+        for dataset in datasets:
+            if dataset.index_struct_dict:
+                if dataset.index_struct_dict['type'] != 'qdrant':
+                    try:
+                        click.echo('Update dataset qdrant index: {}'.format(dataset.id))
+                        try:
+                            embedding_model = ModelFactory.get_embedding_model(
+                                tenant_id=dataset.tenant_id,
+                                model_provider_name=dataset.embedding_model_provider,
+                                model_name=dataset.embedding_model
+                            )
+                        except Exception:
+                            provider = Provider(
+                                id='provider_id',
+                                tenant_id=dataset.tenant_id,
+                                provider_name='openai',
+                                provider_type=ProviderType.CUSTOM.value,
+                                encrypted_config=json.dumps({'openai_api_key': 'TEST'}),
+                                is_valid=True,
+                            )
+                            model_provider = OpenAIProvider(provider=provider)
+                            embedding_model = OpenAIEmbedding(name="text-embedding-ada-002", model_provider=model_provider)
+                        embeddings = CacheEmbedding(embedding_model)
+
+                        from core.index.vector_index.qdrant_vector_index import QdrantVectorIndex, QdrantConfig
+
+                        index = QdrantVectorIndex(
+                            dataset=dataset,
+                            config=QdrantConfig(
+                                endpoint=current_app.config.get('QDRANT_URL'),
+                                api_key=current_app.config.get('QDRANT_API_KEY'),
+                                root_path=current_app.root_path
+                            ),
+                            embeddings=embeddings
+                        )
+                        if index:
+                            index.update_qdrant_dataset(dataset)
+                            create_count += 1
+                        else:
+                            click.echo('passed.')
+                    except Exception as e:
+                        click.echo(
+                            click.style('Create dataset index error: {} {}'.format(e.__class__.__name__, str(e)), fg='red'))
+                        continue
+
+    click.echo(click.style('Congratulations! Update {} dataset indexes.'.format(create_count), fg='green'))
+
 def register_commands(app):
     app.cli.add_command(reset_password)
     app.cli.add_command(reset_email)
@@ -289,3 +440,5 @@ def register_commands(app):
     app.cli.add_command(recreate_all_dataset_indexes)
     app.cli.add_command(sync_anthropic_hosted_providers)
     app.cli.add_command(clean_unused_dataset_indexes)
+    app.cli.add_command(create_qdrant_indexes)
+    app.cli.add_command(update_qdrant_indexes)
