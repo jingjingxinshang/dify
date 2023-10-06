@@ -51,6 +51,11 @@ const translation = {
       description: '启用后，您可以使用语音输入。',
       resDes: '语音输入已启用',
     },
+    citation: {
+      title: '引用和归属',
+      description: '启用后，显示源文档和生成内容的归属部分。',
+      resDes: '引用和归属已启用',
+    },
     dataSet: {
       title: '上下文',
       noData: '您可以导入数据集作为上下文',
@@ -61,6 +66,19 @@ const translation = {
       noDataSet: '未找到数据集',
       toCreate: '去创建',
       notSupportSelectMulti: '目前只支持引用一个数据集',
+      queryVariable: {
+        title: '查询变量',
+        tip: '该变量将用作上下文检索的查询输入，获取与该变量的输入相关的上下文信息。',
+        choosePlaceholder: '请选择变量',
+        noVar: '没有变量',
+        noVarTip: '请创建变量',
+        unableToQueryDataSet: '无法查询数据集',
+        unableToQueryDataSetTip: '无法成功查询数据集，请在上下文部分选择一个上下文查询变量。',
+        ok: '好的',
+        contextVarNotEmpty: '上下文查询变量不能为空',
+        deleteContextVarTitle: '删除变量“{{varName}}”？',
+        deleteContextVarTip: '该变量已被设置为上下文查询变量，删除该变量将影响数据集的正常使用。 如果您仍需要删除它，请在上下文部分中重新选择它。',
+      },
     },
   },
   automatic: {
@@ -119,11 +137,15 @@ const translation = {
     notStartWithNumber: '变量: {{key}} 不能以数字开头',
     keyAlreadyExists: '变量:{{key}} 已存在',
   },
+  otherError: {
+    promptNoBeEmpty: '前缀提示词不能为空',
+  },
   variableConig: {
     modalTitle: '变量设置',
     description: '设置变量 {{varName}}',
     fieldType: '字段类型',
     string: '文本',
+    paragraph: '段落',
     select: '下拉选项',
     notSet: '未设置，在 Prompt 中输入 {{input}} 试试',
     stringTitle: '文本框设置',

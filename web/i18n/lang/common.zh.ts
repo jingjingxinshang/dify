@@ -40,28 +40,30 @@ const translation = {
   actionMsg: {
     noModification: '暂无修改',
     modifiedSuccessfully: '修改成功',
-    modificationFailed: '修改失败',
+    modifiedUnsuccessfully: '修改失败',
     copySuccessfully: '复制成功',
+    generatedSuccessfully: '已重新生成',
+    generatedUnsuccessfully: '生成失败',
     paySucceeded: '已支付成功',
     payCancelled: '已取消支付',
   },
   model: {
     params: {
-      temperature: '多样性',
+      temperature: '随机性 temperature',
       temperatureTip:
-        '较高的 Temperature 设置将导致更多样和创造性的输出，而较低的 Temperature 将产生更保守的输出并且类似于训练数据。',
-      top_p: '采样范围',
+        '控制回复的随机性。\n值越大，回复越随机。\n值越小，回复越确定或一致。',
+      top_p: '核采样 top_p',
       top_pTip:
-        'Top P值越低，输出与训练文本越相似，Top P值越高，输出越有创意和变化。它可用于使输出更适合特定用例。',
-      presence_penalty: '词汇控制',
+        '控制生成多样性。\n值越大，输出会包括更多的单词选项。\n值越小，模型会更集中在高概率的单词上，输出更确定但可能缺乏多样性。\n核采样和随机性不建议同时修改。',
+      presence_penalty: '话题新鲜度 presence_penalty',
       presence_penaltyTip:
-        'Presence penalty 是根据新词是否出现在目前的文本中来对其进行惩罚。正值将降低模型谈论新话题的可能性。',
-      frequency_penalty: '重复控制',
+        '控制生成时对上文已存在的话题的偏好程度。\n值越大，越可能使用到新的话题。',
+      frequency_penalty: '频率惩罚度 frequency_penalty',
       frequency_penaltyTip:
-        'Frequency penalty 是根据重复词在目前文本中的出现频率来对其进行惩罚。正值将不太可能重复常用单词和短语。',
-      max_tokens: '最大 Token',
+        '影响常见与罕见词汇使用。\n值较大时，倾向于生成不常见的词汇和表达方式。\n值越小，更倾向于使用常见和普遍接受的词汇或短语。',
+      max_tokens: '单次回复限制 max_tokens',
       max_tokensTip:
-        '生成的最大令牌数取决于模型。提示和完成共享令牌数限制。一个令牌约等于 1 个英文或 半个中文字符。',
+        '用于限制回复的最大长度，以 token 为单位。\n较大的值可能会限制给提示词、聊天记录和数据集留出的空间。\n建议将其设置在三分之二以下。',
       maxTokenSettingTip: '您设置的最大 tokens 数较大，可能会导致 prompt、用户问题、数据集内容没有 token 空间进行处理，建议设置到 2/3 以下。',
       setToCurrentModelMaxTokenTip: '最大令牌数更新为当前模型最大的令牌数 {{maxToken}} 的 80%。',
     },
@@ -136,10 +138,12 @@ const translation = {
     email: '邮箱',
     emailInvalid: '邮箱格式无效',
     emailPlaceholder: '输入邮箱',
-    sendInvite: '添加',
+    sendInvite: '发送邀请',
+    invitedAsRole: '邀请为{{role}}用户',
     invitationSent: '邀请已发送',
     invitationSentTip: '邀请已发送，对方登录 Dify 后即可访问你的团队数据。',
     invitationLink: '邀请链接',
+    failedinvitationEmails: '邀请以下邮箱失败',
     ok: '好的',
     removeFromTeam: '移除团队',
     removeFromTeamTip: '将取消团队访问',
@@ -333,6 +337,20 @@ const translation = {
     'whisper-1': 'Whisper-1',
     'claude-instant-1': 'Claude-Instant',
     'claude-2': 'Claude-2',
+  },
+  chat: {
+    renameConversation: '重命名会话',
+    conversationName: '会话名称',
+    conversationNamePlaceholder: '请输入会话名称',
+    conversationNameCanNotEmpty: '会话名称必填',
+    citation: {
+      title: '引用',
+      linkToDataset: '跳转至数据集',
+      characters: '字符：',
+      hitCount: '命中次数：',
+      vectorHash: '向量哈希：',
+      hitScore: '命中得分：',
+    },
   },
 }
 

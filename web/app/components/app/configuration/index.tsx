@@ -6,6 +6,7 @@ import { useContext } from 'use-context-selector'
 import { usePathname } from 'next/navigation'
 import produce from 'immer'
 import { useBoolean } from 'ahooks'
+import cn from 'classnames'
 import Button from '../../base/button'
 import Loading from '../../base/loading'
 import type { CompletionParams, Inputs, ModelConfig, MoreLikeThisConfig, PromptConfig, PromptVariable } from '@/models/debug'
@@ -17,13 +18,18 @@ import Config from '@/app/components/app/configuration/config'
 import Debug from '@/app/components/app/configuration/debug'
 import Confirm from '@/app/components/base/confirm'
 import { ProviderEnum } from '@/app/components/header/account-setting/model-page/declarations'
-import type { AppDetailResponse } from '@/models/app'
 import { ToastContext } from '@/app/components/base/toast'
 import { fetchAppDetail, updateAppModelConfig } from '@/service/apps'
 import { promptVariablesToUserInputsForm, userInputsFormToPromptVariables } from '@/utils/model-config'
 import { fetchDatasets } from '@/service/datasets'
 import AccountSetting from '@/app/components/header/account-setting'
 import { useProviderContext } from '@/context/provider-context'
+import { AppType } from '@/types/app'
+
+type PublichConfig = {
+  modelConfig: ModelConfig
+  completionParams: CompletionParams
+}
 
 const Configuration: FC = () => {
   const { t } = useTranslation()
@@ -35,10 +41,7 @@ const Configuration: FC = () => {
   const matched = pathname.match(/\/app\/([^/]+)/)
   const appId = (matched?.length && matched[1]) ? matched[1] : ''
   const [mode, setMode] = useState('')
-  const [publishedConfig, setPublishedConfig] = useState<{
-    modelConfig: ModelConfig
-    completionParams: CompletionParams
-  } | null>(null)
+  const [publishedConfig, setPublishedConfig] = useState<PublichConfig | null>(null)
 
   const [conversationId, setConversationId] = useState<string | null>('')
   const [introduction, setIntroduction] = useState<string>('')
@@ -54,6 +57,9 @@ const Configuration: FC = () => {
     enabled: false,
   })
   const [speechToTextConfig, setSpeechToTextConfig] = useState<MoreLikeThisConfig>({
+    enabled: false,
+  })
+  const [citationConfig, setCitationConfig] = useState<MoreLikeThisConfig>({
     enabled: false,
   })
   const [formattingChanged, setFormattingChanged] = useState(false)
@@ -77,6 +83,7 @@ const Configuration: FC = () => {
     more_like_this: null,
     suggested_questions_after_answer: null,
     speech_to_text: null,
+    retriever_resource: null,
     dataSets: [],
   })
 
@@ -93,14 +100,15 @@ const Configuration: FC = () => {
   }
 
   const [dataSets, setDataSets] = useState<DataSet[]>([])
-
-  const syncToPublishedConfig = (_publishedConfig: any) => {
+  const contextVar = modelConfig.configs.prompt_variables.find(item => item.is_context_var)?.key
+  const hasSetContextVar = !!contextVar
+  const syncToPublishedConfig = (_publishedConfig: PublichConfig) => {
     const modelConfig = _publishedConfig.modelConfig
     setModelConfig(_publishedConfig.modelConfig)
     setCompletionParams(_publishedConfig.completionParams)
     setDataSets(modelConfig.dataSets || [])
     // feature
-    setIntroduction(modelConfig.opening_statement)
+    setIntroduction(modelConfig.opening_statement!)
     setMoreLikeThisConfig(modelConfig.more_like_this || {
       enabled: false,
     })
@@ -108,6 +116,9 @@ const Configuration: FC = () => {
       enabled: false,
     })
     setSpeechToTextConfig(modelConfig.speech_to_text || {
+      enabled: false,
+    })
+    setCitationConfig(modelConfig.retriever_resource || {
       enabled: false,
     })
   }
@@ -134,7 +145,7 @@ const Configuration: FC = () => {
   const [isShowSetAPIKey, { setTrue: showSetAPIKey, setFalse: hideSetAPIkey }] = useBoolean()
 
   useEffect(() => {
-    (fetchAppDetail({ url: '/apps', id: appId }) as any).then(async (res: AppDetailResponse) => {
+    fetchAppDetail({ url: '/apps', id: appId }).then(async (res) => {
       setMode(res.mode)
       const modelConfig = res.model_config
       const model = res.model_config.model
@@ -159,18 +170,22 @@ const Configuration: FC = () => {
       if (modelConfig.speech_to_text)
         setSpeechToTextConfig(modelConfig.speech_to_text)
 
+      if (modelConfig.retriever_resource)
+        setCitationConfig(modelConfig.retriever_resource)
+
       const config = {
         modelConfig: {
           provider: model.provider,
           model_id: model.name,
           configs: {
             prompt_template: modelConfig.pre_prompt,
-            prompt_variables: userInputsFormToPromptVariables(modelConfig.user_input_form),
+            prompt_variables: userInputsFormToPromptVariables(modelConfig.user_input_form, modelConfig.dataset_query_variable),
           },
           opening_statement: modelConfig.opening_statement,
           more_like_this: modelConfig.more_like_this,
           suggested_questions_after_answer: modelConfig.suggested_questions_after_answer,
           speech_to_text: modelConfig.speech_to_text,
+          retriever_resource: modelConfig.retriever_resource,
           dataSets: datasets || [],
         },
         completionParams: model.completion_params,
@@ -182,11 +197,22 @@ const Configuration: FC = () => {
     })
   }, [appId])
 
+  const promptEmpty = mode === AppType.completion && !modelConfig.configs.prompt_template
+  const contextVarEmpty = mode === AppType.completion && dataSets.length > 0 && !hasSetContextVar
+  const cannotPublish = promptEmpty || contextVarEmpty
   const saveAppConfig = async () => {
     const modelId = modelConfig.model_id
     const promptTemplate = modelConfig.configs.prompt_template
     const promptVariables = modelConfig.configs.prompt_variables
 
+    if (promptEmpty) {
+      notify({ type: 'error', message: t('appDebug.otherError.promptNoBeEmpty'), duration: 3000 })
+      return
+    }
+    if (contextVarEmpty) {
+      notify({ type: 'error', message: t('appDebug.feature.dataSet.queryVariable.contextVarNotEmpty'), duration: 3000 })
+      return
+    }
     const postDatasets = dataSets.map(({ id }) => ({
       dataset: {
         enabled: true,
@@ -198,10 +224,12 @@ const Configuration: FC = () => {
     const data: BackendModelConfig = {
       pre_prompt: promptTemplate,
       user_input_form: promptVariablesToUserInputsForm(promptVariables),
+      dataset_query_variable: contextVar || '',
       opening_statement: introduction || '',
       more_like_this: moreLikeThisConfig,
       suggested_questions_after_answer: suggestedQuestionsAfterAnswerConfig,
       speech_to_text: speechToTextConfig,
+      retriever_resource: citationConfig,
       agent_mode: {
         enabled: true,
         tools: [...postDatasets],
@@ -219,6 +247,7 @@ const Configuration: FC = () => {
       draft.more_like_this = moreLikeThisConfig
       draft.suggested_questions_after_answer = suggestedQuestionsAfterAnswerConfig
       draft.speech_to_text = speechToTextConfig
+      draft.retriever_resource = citationConfig
       draft.dataSets = dataSets
     })
     setPublishedConfig({
@@ -230,7 +259,7 @@ const Configuration: FC = () => {
 
   const [showConfirm, setShowConfirm] = useState(false)
   const resetAppConfig = () => {
-    syncToPublishedConfig(publishedConfig)
+    syncToPublishedConfig(publishedConfig!)
     setShowConfirm(false)
   }
 
@@ -263,6 +292,8 @@ const Configuration: FC = () => {
       setSuggestedQuestionsAfterAnswerConfig,
       speechToTextConfig,
       setSpeechToTextConfig,
+      citationConfig,
+      setCitationConfig,
       formattingChanged,
       setFormattingChanged,
       inputs,
@@ -275,6 +306,7 @@ const Configuration: FC = () => {
       setModelConfig,
       dataSets,
       setDataSets,
+      hasSetContextVar,
     }}
     >
       <>
@@ -296,7 +328,7 @@ const Configuration: FC = () => {
               />
               <div className='mx-3 w-[1px] h-[14px] bg-gray-200'></div>
               <Button onClick={() => setShowConfirm(true)} className='shrink-0 mr-2 w-[70px] !h-8 !text-[13px] font-medium'>{t('appDebug.operation.resetConfig')}</Button>
-              <Button type='primary' onClick={saveAppConfig} className='shrink-0 w-[70px] !h-8 !text-[13px] font-medium'>{t('appDebug.operation.applyConfig')}</Button>
+              <Button type='primary' onClick={saveAppConfig} className={cn(cannotPublish && '!bg-primary-200 !cursor-not-allowed', 'shrink-0 w-[70px] !h-8 !text-[13px] font-medium')}>{t('appDebug.operation.applyConfig')}</Button>
             </div>
           </div>
           <div className='flex grow h-[200px]'>

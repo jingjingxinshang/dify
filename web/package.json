@@ -1,11 +1,11 @@
 {
   "name": "dify-web",
-  "version": "0.3.18",
+  "version": "0.3.24",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next dev",
     "lint": "next lint",
     "fix": "next lint --fix",
     "eslint-fix": "eslint --fix",
@@ -16,6 +16,7 @@
   "dependencies": {
     "@babel/runtime": "^7.22.3",
     "@emoji-mart/data": "^1.1.2",
+    "@floating-ui/react": "^0.25.2",
     "@formatjs/intl-localematcher": "^0.2.32",
     "@headlessui/react": "^1.7.13",
     "@heroicons/react": "^2.0.16",
@@ -35,7 +36,6 @@
     "@tailwindcss/line-clamp": "^0.4.4",
     "@tailwindcss/typography": "^0.5.9",
     "ahooks": "^3.7.5",
-    "autoprefixer": "^10.4.14",
     "classnames": "^2.3.2",
     "copy-to-clipboard": "^3.3.3",
     "crypto-js": "^4.1.1",
@@ -52,6 +52,7 @@
     "katex": "^0.16.7",
     "lamejs": "1.2.0",
     "lodash-es": "^4.17.21",
+    "mermaid": "10.4.0",
     "negotiator": "^0.6.3",
     "next": "13.3.1",
     "qs": "^6.11.1",
@@ -63,6 +64,7 @@
     "react-i18next": "^12.2.0",
     "react-infinite-scroll-component": "^6.1.0",
     "react-markdown": "^8.0.6",
+    "react-multi-email": "^1.0.14",
     "react-papaparse": "^4.1.0",
     "react-slider": "^2.0.4",
     "react-sortablejs": "^6.1.4",
@@ -111,7 +113,10 @@
     "miragejs": "^0.1.47",
     "postcss": "^8.4.21",
     "sass": "^1.61.0",
-    "uglify-js": "^3.17.4"
+    "uglify-js": "^3.17.4",
+    "tailwindcss": "^3.3.3",
+    "typescript": "4.9.5",
+    "autoprefixer": "^10.4.14"
   },
   "lint-staged": {
     "**/*.js?(x)": [

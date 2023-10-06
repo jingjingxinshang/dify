@@ -29,9 +29,9 @@ const ACCEPTS = [
   '.md',
   '.markdown',
   '.txt',
-  // '.xls',
   '.xlsx',
-  // '.csv',
+  '.csv',
+  '.docx',
 ]
 
 const FileUploader = ({
@@ -78,7 +78,7 @@ const FileUploader = ({
   const isValid = useCallback((file: File) => {
     const { size } = file
     const ext = `.${getFileType(file)}`
-    const isValidType = ACCEPTS.includes(ext)
+    const isValidType = ACCEPTS.includes(ext.toLowerCase())
     if (!isValidType)
       notify({ type: 'error', message: t('datasetCreation.stepOne.uploader.validation.typeError') })
 
@@ -250,7 +250,6 @@ const FileUploader = ({
             className={cn(
               s.file,
               fileItem.progress < 100 && s.uploading,
-              // s.active,
             )}
           >
             {fileItem.progress < 100 && (
@@ -274,33 +273,6 @@ const FileUploader = ({
             </div>
           </div>
         ))}
-        {/* {currentFile && (
-          <div
-            // onClick={() => onPreview(currentFile)}
-            className={cn(
-              s.file,
-              uploading && s.uploading,
-              // s.active,
-            )}
-          >
-            {uploading && (
-              <div className={s.progressbar} style={{ width: `${percent}%` }}/>
-            )}
-            <div className={s.fileInfo}>
-              <div className={cn(s.fileIcon, s[getFileType(currentFile)])}/>
-              <div className={s.filename}>{currentFile.name}</div>
-              <div className={s.size}>{getFileSize(currentFile.size)}</div>
-            </div>
-            <div className={s.actionWrapper}>
-              {uploading && (
-                <div className={s.percent}>{`${percent}%`}</div>
-              )}
-              {!uploading && (
-                <div className={s.remove} onClick={() => removeFile(index)}/>
-              )}
-            </div>
-          </div>
-        )} */}
       </div>
     </div>
   )

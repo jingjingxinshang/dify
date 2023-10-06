@@ -8,7 +8,7 @@ import { AlertCircle } from '@/app/components/base/icons/src/vender/solid/alerts
 import { CheckCircle } from '@/app/components/base/icons/src/vender/solid/general'
 import Button from '@/app/components/base/button'
 
-type ConfirmCommonProps = {
+export type ConfirmCommonProps = {
   type?: string
   isShow: boolean
   onCancel: () => void
@@ -17,6 +17,7 @@ type ConfirmCommonProps = {
   onConfirm?: () => void
   showOperate?: boolean
   showOperateCancel?: boolean
+  confirmBtnClassName?: string
   confirmText?: string
 }
 
@@ -29,6 +30,7 @@ const ConfirmCommon: FC<ConfirmCommonProps> = ({
   onConfirm,
   showOperate = true,
   showOperateCancel = true,
+  confirmBtnClassName,
   confirmText,
 }) => {
   const { t } = useTranslation()
@@ -72,7 +74,7 @@ const ConfirmCommon: FC<ConfirmCommonProps> = ({
               }
               <Button
                 type='primary'
-                className=''
+                className={confirmBtnClassName || ''}
                 onClick={onConfirm}
               >
                 {confirmText || CONFIRM_MAP[type].confirmText}

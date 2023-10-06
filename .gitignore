@@ -153,4 +153,5 @@ sdks/python-client/dify_client.egg-info
 web/node_modules
 node_modules/*
 
-.vscode/
+.vscode/*
+!.vscode/launch.json

@@ -8,6 +8,9 @@ const translation = {
   copied: 'Copied',
   ttsPlay: 'Play',
   ttsStop: 'Stop',
+  merMaind: {
+    rerender: 'Redo Rerender',
+  },
   never: 'Never',
   apiKeyModal: {
     apiSecretKey: 'API Secret key',

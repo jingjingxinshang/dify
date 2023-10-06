@@ -51,6 +51,11 @@ const translation = {
       description: 'Once enabled, you can use voice input.',
       resDes: 'Voice input is enabled',
     },
+    citation: {
+      title: 'Citations and Attributions',
+      description: 'Once enabled, show source document and attributed section of the generated content.',
+      resDes: 'Citations and Attributions is enabled',
+    },
     dataSet: {
       title: 'Context',
       noData: 'You can import datasets as context',
@@ -61,6 +66,19 @@ const translation = {
       noDataSet: 'No dataset found',
       toCreate: 'Go to create',
       notSupportSelectMulti: 'Currently only support one dataset',
+      queryVariable: {
+        title: 'Query variable',
+        tip: 'This variable will be used as the query input for context retrieval, obtaining context information related to the input of this variable.',
+        choosePlaceholder: 'Choose query variable',
+        noVar: 'No variables',
+        noVarTip: 'please create a variable under the Variables section',
+        unableToQueryDataSet: 'Unable to query the dataset',
+        unableToQueryDataSetTip: 'Unable to query the dataset successfully, please choose a context query variable in the context section.',
+        ok: 'OK',
+        contextVarNotEmpty: 'context query variable can not be empty',
+        deleteContextVarTitle: 'Delete variable “{{varName}}”?',
+        deleteContextVarTip: 'This variable has been set as a context query variable, and removing it will impact the normal use of the dataset. If you still need to delete it, please reselect it in the context section.',
+      },
     },
   },
   automatic: {
@@ -123,11 +141,15 @@ const translation = {
     notStartWithNumber: 'Variable key: {{key}} can not start with a number',
     keyAlreadyExists: 'Variable key: :{{key}} already exists',
   },
+  otherError: {
+    promptNoBeEmpty: 'Prefix prompt can not be empty',
+  },
   variableConig: {
     modalTitle: 'Field settings',
     description: 'Setting for variable {{varName}}',
     fieldType: 'Field type',
-    string: 'Text',
+    string: 'Short Text',
+    paragraph: 'Paragraph',
     select: 'Select',
     notSet: 'Not set, try typing {{input}} in the prefix prompt',
     stringTitle: 'Form text box options',

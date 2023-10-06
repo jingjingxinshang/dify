@@ -10,6 +10,7 @@ import dayjs from 'dayjs'
 import HasNotSetAPIKEY from '../base/warning-mask/has-not-set-api'
 import FormattingChanged from '../base/warning-mask/formatting-changed'
 import GroupName from '../base/group-name'
+import CannotQueryDataset from '../base/warning-mask/cannot-query-dataset'
 import { AppType } from '@/types/app'
 import PromptValuePanel, { replaceStringWithValues } from '@/app/components/app/configuration/prompt-value-panel'
 import type { IChatItem } from '@/app/components/app/chat/type'
@@ -23,7 +24,6 @@ import { promptVariablesToUserInputsForm } from '@/utils/model-config'
 import TextGeneration from '@/app/components/app/text-generate/item'
 import { IS_CE_EDITION } from '@/config'
 import { useProviderContext } from '@/context/provider-context'
-
 type IDebug = {
   hasSetAPIKEY: boolean
   onSetting: () => void
@@ -40,6 +40,7 @@ const Debug: FC<IDebug> = ({
     introduction,
     suggestedQuestionsAfterAnswerConfig,
     speechToTextConfig,
+    citationConfig,
     moreLikeThisConfig,
     inputs,
     // setInputs,
@@ -51,6 +52,7 @@ const Debug: FC<IDebug> = ({
     dataSets,
     modelConfig,
     completionParams,
+    hasSetContextVar,
   } = useContext(ConfigContext)
   const { speech2textDefaultModel } = useProviderContext()
   const [chatList, setChatList, getChatList] = useGetState<IChatItem[]>([])
@@ -76,6 +78,7 @@ const Debug: FC<IDebug> = ({
   const [isResponsing, { setTrue: setResponsingTrue, setFalse: setResponsingFalse }] = useBoolean(false)
   const [abortController, setAbortController] = useState<AbortController | null>(null)
   const [isShowFormattingChangeConfirm, setIsShowFormattingChangeConfirm] = useState(false)
+  const [isShowCannotQueryDataset, setShowCannotQueryDataset] = useState(false)
   const [isShowSuggestion, setIsShowSuggestion] = useState(false)
   const [messageTaskId, setMessageTaskId] = useState('')
   const [hasStopResponded, setHasStopResponded, getHasStopResponded] = useGetState(false)
@@ -156,12 +159,14 @@ const Debug: FC<IDebug> = ({
     const postModelConfig: BackendModelConfig = {
       pre_prompt: modelConfig.configs.prompt_template,
       user_input_form: promptVariablesToUserInputsForm(modelConfig.configs.prompt_variables),
+      dataset_query_variable: '',
       opening_statement: introduction,
       more_like_this: {
         enabled: false,
       },
       suggested_questions_after_answer: suggestedQuestionsAfterAnswerConfig,
       speech_to_text: speechToTextConfig,
+      retriever_resource: citationConfig,
       agent_mode: {
         enabled: true,
         tools: [...postDatasets],
@@ -199,7 +204,7 @@ const Debug: FC<IDebug> = ({
     setChatList(newList)
 
     // answer
-    const responseItem = {
+    const responseItem: IChatItem = {
       id: `${Date.now()}`,
       content: '',
       isAnswer: true,
@@ -266,6 +271,19 @@ const Debug: FC<IDebug> = ({
           setIsShowSuggestion(true)
         }
       },
+      onMessageEnd: (messageEnd) => {
+        responseItem.citation = messageEnd.retriever_resources
+
+        const newListWithAnswer = produce(
+          getChatList().filter(item => item.id !== responseItem.id && item.id !== placeholderAnswerId),
+          (draft) => {
+            if (!draft.find(item => item.id === questionId))
+              draft.push({ ...questionItem })
+
+            draft.push({ ...responseItem })
+          })
+        setChatList(newListWithAnswer)
+      },
       onError() {
         setResponsingFalse()
         // role back placeholder answer
@@ -282,8 +300,8 @@ const Debug: FC<IDebug> = ({
       setChatList([])
   }, [controlClearChatMessage])
 
-  const [completionQuery, setCompletionQuery] = useState('')
   const [completionRes, setCompletionRes] = useState('')
+  const [messageId, setMessageId] = useState<string | null>(null)
 
   const sendTextCompletion = async () => {
     if (isResponsing) {
@@ -291,13 +309,13 @@ const Debug: FC<IDebug> = ({
       return false
     }
 
+    if (dataSets.length > 0 && !hasSetContextVar) {
+      setShowCannotQueryDataset(true)
+      return true
+    }
+
     if (!checkCanSend())
       return
-
-    if (!completionQuery) {
-      logError(t('appDebug.errorMessage.queryRequired'))
-      return false
-    }
 
     const postDatasets = dataSets.map(({ id }) => ({
       dataset: {
@@ -305,13 +323,16 @@ const Debug: FC<IDebug> = ({
         id,
       },
     }))
+    const contextVar = modelConfig.configs.prompt_variables.find(item => item.is_context_var)?.key
 
     const postModelConfig: BackendModelConfig = {
       pre_prompt: modelConfig.configs.prompt_template,
       user_input_form: promptVariablesToUserInputsForm(modelConfig.configs.prompt_variables),
+      dataset_query_variable: contextVar || '',
       opening_statement: introduction,
       suggested_questions_after_answer: suggestedQuestionsAfterAnswerConfig,
       speech_to_text: speechToTextConfig,
+      retriever_resource: citationConfig,
       more_like_this: moreLikeThisConfig,
       agent_mode: {
         enabled: true,
@@ -326,18 +347,19 @@ const Debug: FC<IDebug> = ({
 
     const data = {
       inputs,
-      query: completionQuery,
       model_config: postModelConfig,
     }
 
     setCompletionRes('')
+    setMessageId('')
     const res: string[] = []
 
     setResponsingTrue()
     sendCompletionMessage(appId, data, {
-      onData: (data: string) => {
+      onData: (data: string, _isFirstMessage: boolean, { messageId }) => {
         res.push(data)
         setCompletionRes(res.join(''))
+        setMessageId(messageId)
       },
       onCompleted() {
         setResponsingFalse()
@@ -364,8 +386,6 @@ const Debug: FC<IDebug> = ({
         </div>
         <PromptValuePanel
           appType={mode as AppType}
-          value={completionQuery}
-          onChange={setCompletionQuery}
           onSend={sendTextCompletion}
         />
       </div>
@@ -391,6 +411,8 @@ const Debug: FC<IDebug> = ({
                   isShowSuggestion={doShowSuggestion}
                   suggestionList={suggestQuestions}
                   isShowSpeechToText={speechToTextConfig.enabled && !!speech2textDefaultModel}
+                  isShowCitation={citationConfig.enabled}
+                  isShowCitationHitInfo
                 />
               </div>
             </div>
@@ -406,6 +428,7 @@ const Debug: FC<IDebug> = ({
                 content={completionRes}
                 isLoading={!completionRes && isResponsing}
                 isInstalledApp={false}
+                messageId={messageId}
               />
             )}
           </div>
@@ -414,6 +437,11 @@ const Debug: FC<IDebug> = ({
           <FormattingChanged
             onConfirm={handleConfirm}
             onCancel={handleCancel}
+          />
+        )}
+        {isShowCannotQueryDataset && (
+          <CannotQueryDataset
+            onConfirm={() => setShowCannotQueryDataset(false)}
           />
         )}
       </div>

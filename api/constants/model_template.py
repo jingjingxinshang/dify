@@ -16,7 +16,7 @@ model_templates = {
         },
         'model_config': {
             'provider': 'openai',
-            'model_id': 'text-davinci-003',
+            'model_id': 'gpt-3.5-turbo-instruct',
             'configs': {
                 'prompt_template': '',
                 'prompt_variables': [],
@@ -30,7 +30,7 @@ model_templates = {
             },
             'model': json.dumps({
                 "provider": "openai",
-                "name": "text-davinci-003",
+                "name": "gpt-3.5-turbo-instruct",
                 "completion_params": {
                     "max_tokens": 512,
                     "temperature": 1,
@@ -38,7 +38,18 @@ model_templates = {
                     "presence_penalty": 0,
                     "frequency_penalty": 0
                 }
-            })
+            }),
+            'user_input_form': json.dumps([
+                {
+                    "paragraph": {
+                        "label": "Query",
+                        "variable": "query",
+                        "required": True,
+                        "default": ""
+                    }
+                }
+            ]),
+            'pre_prompt': '{{query}}'
         }
     },
 
@@ -93,7 +104,7 @@ demo_model_templates = {
             'mode': 'completion',
             'model_config': AppModelConfig(
                 provider='openai',
-                model_id='text-davinci-003',
+                model_id='gpt-3.5-turbo-instruct',
                 configs={
                     'prompt_template': "Please translate the following text into {{target_language}}:\n",
                     'prompt_variables': [
@@ -129,7 +140,7 @@ demo_model_templates = {
                 pre_prompt="Please translate the following text into {{target_language}}:\n",
                 model=json.dumps({
                     "provider": "openai",
-                    "name": "text-davinci-003",
+                    "name": "gpt-3.5-turbo-instruct",
                     "completion_params": {
                         "max_tokens": 1000,
                         "temperature": 0,
@@ -211,7 +222,7 @@ demo_model_templates = {
             'mode': 'completion',
             'model_config': AppModelConfig(
                 provider='openai',
-                model_id='text-davinci-003',
+                model_id='gpt-3.5-turbo-instruct',
                 configs={
                     'prompt_template': "请将以下文本翻译为{{target_language}}:\n",
                     'prompt_variables': [
@@ -247,7 +258,7 @@ demo_model_templates = {
                 pre_prompt="请将以下文本翻译为{{target_language}}:\n",
                 model=json.dumps({
                     "provider": "openai",
-                    "name": "text-davinci-003",
+                    "name": "gpt-3.5-turbo-instruct",
                     "completion_params": {
                         "max_tokens": 1000,
                         "temperature": 0,
