@@ -385,9 +385,6 @@ class DocumentService:
 
     @staticmethod
     def delete_document(document):
-        if document.indexing_status in ["parsing", "cleaning", "splitting", "indexing"]:
-            raise DocumentIndexingError()
-
         # trigger document_was_deleted signal
         document_was_deleted.send(document.id, dataset_id=document.dataset_id)
 
@@ -1091,6 +1088,8 @@ class SegmentService:
                     segment.answer = args['answer']
                 if args['keywords']:
                     segment.keywords = args['keywords']
+                if args['enabled'] is not None:
+                    segment.enabled = args['enabled']
                 db.session.add(segment)
                 db.session.commit()
                 # update segment index task

@@ -79,6 +79,7 @@ const ModelPage = () => {
       config.replicate,
       config.huggingface_hub,
       config.zhipuai,
+      config.baichuan,
       config.spark,
       config.minimax,
       config.tongyi,
@@ -93,6 +94,7 @@ const ModelPage = () => {
     modelList = [
       config.huggingface_hub,
       config.zhipuai,
+      config.baichuan,
       config.spark,
       config.minimax,
       config.azure_openai,
@@ -345,6 +347,7 @@ const ModelPage = () => {
         title={deleteModel?.model_name || ''}
         desc={t('common.modelProvider.item.deleteDesc', { modelName: deleteModel?.model_name }) || ''}
         onConfirm={handleDeleteModel}
+        confirmWrapperClassName='!z-30'
       />
     </div>
   )

@@ -16,9 +16,9 @@ from controllers.console.setup import setup_required
 from controllers.console.wraps import account_initialization_required
 from core.model_providers.error import LLMRateLimitError, LLMBadRequestError, LLMAuthorizationError, LLMAPIConnectionError, \
     ProviderTokenNotInitError, LLMAPIUnavailableError, QuotaExceededError, ModelCurrentlyNotSupportError
-from core.login.login import login_required
+from libs.login import login_required
 from fields.conversation_fields import message_detail_fields
-from libs.helper import uuid_value, TimestampField
+from libs.helper import uuid_value
 from libs.infinite_scroll_pagination import InfiniteScrollPagination
 from extensions.ext_database import db
 from models.model import MessageAnnotation, Conversation, Message, MessageFeedback
@@ -295,8 +295,8 @@ class MessageSuggestedQuestionApi(Resource):
         try:
             questions = MessageService.get_suggested_questions_after_answer(
                 app_model=app_model,
-                user=current_user,
                 message_id=message_id,
+                user=current_user,
                 check_enabled=False
             )
         except MessageNotExistsError:
@@ -329,7 +329,7 @@ class MessageApi(Resource):
         message_id = str(message_id)
 
         # get app info
-        app_model = _get_app(app_id, 'chat')
+        app_model = _get_app(app_id)
 
         message = db.session.query(Message).filter(
             Message.id == message_id,
