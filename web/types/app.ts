@@ -1,4 +1,5 @@
 import type { ChatPromptConfig, CompletionPromptConfig, DatasetConfigs, PromptMode } from '@/models/debug.ts'
+import type { ExternalDataTool } from '@/models/common'
 export enum ProviderType {
   openai = 'openai',
   anthropic = 'anthropic',
@@ -113,6 +114,10 @@ export type ModelConfig = {
   retriever_resource: {
     enabled: boolean
   }
+  sensitive_word_avoidance: {
+    enabled: boolean
+  }
+  external_data_tools: ExternalDataTool[]
   agent_mode: {
     enabled: boolean
     tools: ToolItem[]
@@ -171,6 +176,10 @@ export type ModelConfig = {
     }
   }
   dataset_configs: DatasetConfigs
+  file_upload?: {
+    image: VisionSettings
+  }
+  files?: VisionFile[]
 }
 
 export const LanguagesSupported = ['zh-Hans', 'en-US'] as const
@@ -263,4 +272,42 @@ export type AppTemplate = {
   mode: AppMode
   /** Model */
   model_config: ModelConfig
+}
+
+export enum Resolution {
+  low = 'low',
+  high = 'high',
+}
+
+export enum TransferMethod {
+  all = 'all',
+  local_file = 'local_file',
+  remote_url = 'remote_url',
+}
+
+export type VisionSettings = {
+  enabled: boolean
+  number_limits: number
+  detail: Resolution
+  transfer_methods: TransferMethod[]
+  image_file_size_limit?: number | string
+}
+
+export type ImageFile = {
+  type: TransferMethod
+  _id: string
+  fileId: string
+  file?: File
+  progress: number
+  url: string
+  base64Url?: string
+  deleted?: boolean
+}
+
+export type VisionFile = {
+  id?: string
+  type: string
+  transfer_method: TransferMethod
+  url: string
+  upload_file_id: string
 }

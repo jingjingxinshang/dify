@@ -30,6 +30,7 @@ const translation = {
     reload: '刷新',
     ok: '好的',
     log: '日志',
+    learnMore: '了解更多',
   },
   placeholder: {
     input: '请输入',
@@ -108,6 +109,7 @@ const translation = {
     provider: '模型供应商',
     dataSource: '数据来源',
     plugin: '插件',
+    apiBasedExtension: 'API 扩展',
   },
   account: {
     avatar: '头像',
@@ -299,6 +301,34 @@ const translation = {
       keyFrom: '从 SerpAPI 帐户页面获取您的 SerpAPI 密钥',
     },
   },
+  apiBasedExtension: {
+    title: 'API 扩展提供了一个集中式的 API 管理，在此统一添加 API 配置后，方便在 Dify 上的各类应用中直接使用。',
+    link: '了解如何开发您自己的 API 扩展。',
+    linkUrl: 'https://docs.dify.ai/v/zh-hans/advanced/api_based_extension',
+    add: '新增 API 扩展',
+    selector: {
+      title: 'API 扩展',
+      placeholder: '请选择 API 扩展',
+      manage: '管理 API 扩展',
+    },
+    modal: {
+      title: '新增 API 扩展',
+      editTitle: '编辑 API 扩展',
+      name: {
+        title: '名称',
+        placeholder: '请输入名称',
+      },
+      apiEndpoint: {
+        title: 'API Endpoint',
+        placeholder: '请输入 API endpoint',
+      },
+      apiKey: {
+        title: 'API-key',
+        placeholder: '请输入 API-key',
+        lengthError: 'API-key 不能少于 5 位',
+      },
+    },
+  },
   about: {
     changeLog: '更新日志',
     updateNow: '现在更新',
@@ -384,11 +414,12 @@ const translation = {
     },
     variable: {
       item: {
-        title: '变量',
-        desc: '插入变量模板',
+        title: '变量 & 外部工具',
+        desc: '插入变量和外部工具',
       },
       modal: {
         add: '添加新变量',
+        addTool: '添加工具',
       },
     },
     query: {
@@ -398,6 +429,16 @@ const translation = {
       },
     },
     existed: 'Prompt 中已存在',
+  },
+  imageUploader: {
+    uploadFromComputer: '从本地上传',
+    uploadFromComputerReadError: '图片读取失败，请重新选择。',
+    uploadFromComputerUploadError: '图片上传失败，请重新上传。',
+    uploadFromComputerLimit: '上传图片不能超过 {{size}} MB',
+    pasteImageLink: '粘贴图片链接',
+    pasteImageLinkInputPlaceholder: '将图像链接粘贴到此处',
+    pasteImageLinkInvalid: '图片链接无效',
+    imageUpload: '图片上传',
   },
 }
 

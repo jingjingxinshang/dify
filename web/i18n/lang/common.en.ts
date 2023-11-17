@@ -30,6 +30,7 @@ const translation = {
     reload: 'Reload',
     ok: 'OK',
     log: 'Log',
+    learnMore: 'Learn More',
   },
   placeholder: {
     input: 'Please enter',
@@ -108,6 +109,7 @@ const translation = {
     provider: 'Model Provider',
     dataSource: 'Data Source',
     plugin: 'Plugins',
+    apiBasedExtension: 'API Extension',
   },
   account: {
     avatar: 'Avatar',
@@ -299,6 +301,34 @@ const translation = {
       keyFrom: 'Get your SerpAPI key from SerpAPI Account Page',
     },
   },
+  apiBasedExtension: {
+    title: 'API-based extensions provide centralized API management, simplifying configuration for easy use across Dify\'s applications.',
+    link: 'Learn how to develop your own API Extension.',
+    linkUrl: 'https://docs.dify.ai/advanced/api_based_extension',
+    add: 'Add API Extension',
+    selector: {
+      title: 'API Extension',
+      placeholder: 'Please select API-based extension',
+      manage: 'Manage API Extension',
+    },
+    modal: {
+      title: 'Add API Extension',
+      editTitle: 'Edit API Extension',
+      name: {
+        title: 'Name',
+        placeholder: 'Please enter the name',
+      },
+      apiEndpoint: {
+        title: 'API Endpoint',
+        placeholder: 'Please enter the API endpoint',
+      },
+      apiKey: {
+        title: 'API-key',
+        placeholder: 'Please enter the API-key',
+        lengthError: 'API-key length cannot be less than 5 characters',
+      },
+    },
+  },
   about: {
     changeLog: 'Changlog',
     updateNow: 'Update now',
@@ -384,11 +414,12 @@ const translation = {
     },
     variable: {
       item: {
-        title: 'Variables',
-        desc: 'Insert variable template',
+        title: 'Variables & External Tools',
+        desc: 'Insert Variables & External Tools',
       },
       modal: {
         add: 'New variable',
+        addTool: 'New tool',
       },
     },
     query: {
@@ -398,6 +429,16 @@ const translation = {
       },
     },
     existed: 'Already exists in the prompt',
+  },
+  imageUploader: {
+    uploadFromComputer: 'Upload from Computer',
+    uploadFromComputerReadError: 'Image reading failed, please try again.',
+    uploadFromComputerUploadError: 'Image upload failed, please upload again.',
+    uploadFromComputerLimit: 'Upload images cannot exceed {{size}} MB',
+    pasteImageLink: 'Paste image link',
+    pasteImageLinkInputPlaceholder: 'Paste image link here',
+    pasteImageLinkInvalid: 'Invalid image link',
+    imageUpload: 'Image Upload',
   },
 }
 
