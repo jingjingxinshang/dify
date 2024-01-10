@@ -1,15 +1,11 @@
 import type { FC } from 'react'
 import { useRef, useState } from 'react'
-import { useClickAway } from 'ahooks'
 import { useTranslation } from 'react-i18next'
 import { isEqual } from 'lodash-es'
 import cn from 'classnames'
 import { BookOpenIcon } from '@heroicons/react/24/outline'
 import IndexMethodRadio from '@/app/components/datasets/settings/index-method-radio'
 import Button from '@/app/components/base/button'
-import ModelSelector from '@/app/components/header/account-setting/model-page/model-selector'
-import type { ProviderEnum } from '@/app/components/header/account-setting/model-page/declarations'
-import { ModelType } from '@/app/components/header/account-setting/model-page/declarations'
 import type { DataSet } from '@/models/datasets'
 import { useToastContext } from '@/app/components/base/toast'
 import { updateDatasetSetting } from '@/service/datasets'
@@ -18,10 +14,14 @@ import { XClose } from '@/app/components/base/icons/src/vender/line/general'
 import type { RetrievalConfig } from '@/types/app'
 import RetrievalMethodConfig from '@/app/components/datasets/common/retrieval-method-config'
 import EconomicalRetrievalMethodConfig from '@/app/components/datasets/common/economical-retrieval-method-config'
-import { useProviderContext } from '@/context/provider-context'
 import { ensureRerankModelSelected, isReRankModelSelected } from '@/app/components/datasets/common/check-rerank-model'
 import { AlertTriangle } from '@/app/components/base/icons/src/vender/solid/alertsAndFeedback'
 import PermissionsRadio from '@/app/components/datasets/settings/permissions-radio'
+import ModelSelector from '@/app/components/header/account-setting/model-provider-page/model-selector'
+import {
+  useModelList,
+  useModelListAndDefaultModelAndCurrentProviderAndModel,
+} from '@/app/components/header/account-setting/model-provider-page/hooks'
 
 type SettingsModalProps = {
   currentDataset: DataSet
@@ -30,7 +30,7 @@ type SettingsModalProps = {
 }
 
 const rowClass = `
-  flex justify-between py-4
+  flex justify-between py-4 flex-wrap gap-y-2
 `
 
 const labelClass = `
@@ -42,25 +42,21 @@ const SettingsModal: FC<SettingsModalProps> = ({
   onCancel,
   onSave,
 }) => {
+  const { data: embeddingsModelList } = useModelList(2)
+  const {
+    modelList: rerankModelList,
+    defaultModel: rerankDefaultModel,
+    currentModel: isRerankDefaultModelVaild,
+  } = useModelListAndDefaultModelAndCurrentProviderAndModel(3)
   const { t } = useTranslation()
   const { notify } = useToastContext()
   const ref = useRef(null)
-  useClickAway(() => {
-    if (ref)
-      onCancel()
-  }, ref)
 
   const { setShowAccountSettingModal } = useModalContext()
   const [loading, setLoading] = useState(false)
   const [localeCurrentDataset, setLocaleCurrentDataset] = useState({ ...currentDataset })
   const [indexMethod, setIndexMethod] = useState(currentDataset.indexing_technique)
   const [retrievalConfig, setRetrievalConfig] = useState(localeCurrentDataset?.retrieval_model_dict as RetrievalConfig)
-
-  const {
-    rerankDefaultModel,
-    isRerankDefaultModelVaild,
-    rerankModelList,
-  } = useProviderContext()
 
   const handleValueChange = (type: string, value: string) => {
     setLocaleCurrentDataset({ ...localeCurrentDataset, [type]: value })
@@ -78,7 +74,7 @@ const SettingsModal: FC<SettingsModalProps> = ({
     if (
       !isReRankModelSelected({
         rerankDefaultModel,
-        isRerankDefaultModelVaild,
+        isRerankDefaultModelVaild: !!isRerankDefaultModelVaild,
         rerankModelList,
         retrievalConfig,
         indexMethod,
@@ -122,10 +118,8 @@ const SettingsModal: FC<SettingsModalProps> = ({
 
   return (
     <div
-      className='fixed top-16 right-2 flex flex-col bg-white border-[0.5px] border-gray-200 rounded-xl shadow-xl z-10'
+      className='overflow-hidden w-full flex flex-col bg-white border-[0.5px] border-gray-200 rounded-xl shadow-xl'
       style={{
-        zIndex: 11,
-        width: 700,
         height: 'calc(100vh - 72px)',
       }}
       ref={ref}
@@ -179,12 +173,12 @@ const SettingsModal: FC<SettingsModalProps> = ({
           <div className={labelClass}>
             <div>{t('datasetSettings.form.permissions')}</div>
           </div>
-          <div className='w-[480px]'>
+          <div className='w-full sm:w-[480px]'>
             <PermissionsRadio
               disable={!localeCurrentDataset?.embedding_available}
               value={localeCurrentDataset.permission}
               onChange={v => handleValueChange('permission', v!)}
-              itemClassName='!w-[227px]'
+              itemClassName='sm:!w-[227px]'
             />
           </div>
         </div>
@@ -198,7 +192,7 @@ const SettingsModal: FC<SettingsModalProps> = ({
               disable={!localeCurrentDataset?.embedding_available}
               value={indexMethod}
               onChange={v => setIndexMethod(v!)}
-              itemClassName='!w-[227px]'
+              itemClassName='sm:!w-[227px]'
             />
           </div>
         </div>
@@ -211,12 +205,11 @@ const SettingsModal: FC<SettingsModalProps> = ({
               <div className='w-full h-9 rounded-lg bg-gray-100 opacity-60'>
                 <ModelSelector
                   readonly
-                  value={{
-                    providerName: localeCurrentDataset.embedding_model_provider as ProviderEnum,
-                    modelName: localeCurrentDataset.embedding_model,
+                  defaultModel={{
+                    provider: localeCurrentDataset.embedding_model_provider,
+                    model: localeCurrentDataset.embedding_model,
                   }}
-                  modelType={ModelType.embeddings}
-                  onChange={() => {}}
+                  modelList={embeddingsModelList}
                 />
               </div>
               <div className='mt-2 w-full text-xs leading-6 text-gray-500'>
@@ -272,7 +265,7 @@ const SettingsModal: FC<SettingsModalProps> = ({
       )}
 
       <div
-        className='absolute z-[5] bottom-0 w-full flex justify-end py-4 px-6 border-t bg-white '
+        className='sticky z-[5] bottom-0 w-full flex justify-end py-4 px-6 border-t bg-white '
         style={{
           borderColor: 'rgba(0, 0, 0, 0.05)',
         }}

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useContext } from 'use-context-selector'
 import TemplateVarPanel, { PanelTitle, VarOpBtnGroup } from '../value-panel'
 import s from './style.module.css'
-import { AppInfo, ChatBtn, EditBtn, FootLogo, PromptTemplate } from './massive-component'
+import { AppInfo, ChatBtn, EditBtn, PromptTemplate } from './massive-component'
 import type { SiteInfo } from '@/models/share'
 import type { PromptConfig } from '@/models/debug'
 import { ToastContext } from '@/app/components/base/toast'
@@ -26,6 +26,11 @@ export type IWelcomeProps = {
   savedInputs: Record<string, any>
   onInputsChange: (inputs: Record<string, any>) => void
   plan?: string
+  canReplaceLogo?: boolean
+  customConfig?: {
+    remove_webapp_brand?: boolean
+    replace_webapp_logo?: string
+  }
 }
 
 const Welcome: FC<IWelcomeProps> = ({
@@ -33,12 +38,12 @@ const Welcome: FC<IWelcomeProps> = ({
   hasSetInputs,
   isPublicVersion,
   siteInfo,
-  plan,
   promptConfig,
   onStartChat,
   canEidtInpus,
   savedInputs,
   onInputsChange,
+  customConfig,
 }) => {
   const { t } = useTranslation()
   const hasVar = promptConfig.prompt_variables.length > 0

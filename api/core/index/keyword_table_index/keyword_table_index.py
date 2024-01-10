@@ -107,6 +107,9 @@ class KeywordTableIndex(BaseIndex):
 
         self._save_dataset_keyword_table(keyword_table)
 
+    def delete_by_metadata_field(self, key: str, value: str):
+        pass
+
     def get_retriever(self, **kwargs: Any) -> BaseRetriever:
         return KeywordTableRetriever(index=self, **kwargs)
 
@@ -133,6 +136,7 @@ class KeywordTableIndex(BaseIndex):
                     page_content=segment.content,
                     metadata={
                         "doc_id": chunk_index,
+                        "doc_hash": segment.index_node_hash,
                         "document_id": segment.document_id,
                         "dataset_id": segment.dataset_id,
                     }

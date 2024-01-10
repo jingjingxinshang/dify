@@ -18,6 +18,7 @@ from models.dataset import Dataset, DatasetCollectionBinding
 class QdrantConfig(BaseModel):
     endpoint: str
     api_key: Optional[str]
+    timeout: float = 20
     root_path: Optional[str]
 
     def to_qdrant_params(self):
@@ -33,6 +34,7 @@ class QdrantConfig(BaseModel):
             return {
                 'url': self.endpoint,
                 'api_key': self.api_key,
+                'timeout': self.timeout
             }
 
 
@@ -134,6 +136,22 @@ class QdrantVectorIndex(BaseVectorIndex):
                 models.FieldCondition(
                     key="metadata.document_id",
                     match=models.MatchValue(value=document_id),
+                ),
+            ],
+        ))
+
+    def delete_by_metadata_field(self, key: str, value: str):
+
+        vector_store = self._get_vector_store()
+        vector_store = cast(self._get_vector_store_class(), vector_store)
+
+        from qdrant_client.http import models
+
+        vector_store.del_texts(models.Filter(
+            must=[
+                models.FieldCondition(
+                    key=f"metadata.{key}",
+                    match=models.MatchValue(value=value),
                 ),
             ],
         ))

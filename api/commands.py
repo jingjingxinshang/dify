@@ -12,23 +12,19 @@ import qdrant_client
 from qdrant_client.http.models import TextIndexParams, TextIndexType, TokenizerType
 from tqdm import tqdm
 from flask import current_app, Flask
-from langchain.embeddings import OpenAIEmbeddings
 from werkzeug.exceptions import NotFound
 
 from core.embedding.cached_embedding import CacheEmbedding
 from core.index.index import IndexBuilder
-from core.model_providers.model_factory import ModelFactory
-from core.model_providers.models.embedding.openai_embedding import OpenAIEmbedding
-from core.model_providers.models.entity.model_params import ModelType
-from core.model_providers.providers.hosted import hosted_model_providers
-from core.model_providers.providers.openai_provider import OpenAIProvider
+from core.model_manager import ModelManager
+from core.model_runtime.entities.model_entities import ModelType
 from libs.password import password_pattern, valid_password, hash_password
 from libs.helper import email as email_validate
 from extensions.ext_database import db
 from libs.rsa import generate_key_pair
 from models.account import InvitationCode, Tenant, TenantAccountJoin
 from models.dataset import Dataset, DatasetQuery, Document, DatasetCollectionBinding
-from models.model import Account, AppModelConfig, App
+from models.model import Account, AppModelConfig, App, MessageAnnotation, Message
 import secrets
 import base64
 
@@ -327,6 +323,8 @@ def create_qdrant_indexes():
         except NotFound:
             break
 
+        model_manager = ModelManager()
+
         page += 1
         for dataset in datasets:
             if dataset.index_struct_dict:
@@ -334,19 +332,23 @@ def create_qdrant_indexes():
                     try:
                         click.echo('Create dataset qdrant index: {}'.format(dataset.id))
                         try:
-                            embedding_model = ModelFactory.get_embedding_model(
+                            embedding_model = model_manager.get_model_instance(
                                 tenant_id=dataset.tenant_id,
-                                model_provider_name=dataset.embedding_model_provider,
-                                model_name=dataset.embedding_model
+                                provider=dataset.embedding_model_provider,
+                                model_type=ModelType.TEXT_EMBEDDING,
+                                model=dataset.embedding_model
+
                             )
                         except Exception:
                             try:
-                                embedding_model = ModelFactory.get_embedding_model(
-                                    tenant_id=dataset.tenant_id
+                                embedding_model = model_manager.get_default_model_instance(
+                                    tenant_id=dataset.tenant_id,
+                                    model_type=ModelType.TEXT_EMBEDDING,
                                 )
-                                dataset.embedding_model = embedding_model.name
-                                dataset.embedding_model_provider = embedding_model.model_provider.provider_name
+                                dataset.embedding_model = embedding_model.model
+                                dataset.embedding_model_provider = embedding_model.provider
                             except Exception:
+
                                 provider = Provider(
                                     id='provider_id',
                                     tenant_id=dataset.tenant_id,
@@ -752,6 +754,30 @@ def migrate_default_input_to_dataset_query_variable(batch_size):
             pbar.update(len(data_batch))
 
 
+@click.command('add-annotation-question-field-value', help='add annotation question value')
+def add_annotation_question_field_value():
+    click.echo(click.style('Start add annotation question value.', fg='green'))
+    message_annotations = db.session.query(MessageAnnotation).all()
+    message_annotation_deal_count = 0
+    if message_annotations:
+        for message_annotation in message_annotations:
+            try:
+                if message_annotation.message_id and not message_annotation.question:
+                    message = db.session.query(Message).filter(
+                        Message.id == message_annotation.message_id
+                    ).first()
+                    message_annotation.question = message.query
+                    db.session.add(message_annotation)
+                    db.session.commit()
+                    message_annotation_deal_count += 1
+            except Exception as e:
+                click.echo(
+                    click.style('Add annotation question value error: {} {}'.format(e.__class__.__name__, str(e)),
+                                fg='red'))
+            click.echo(
+                click.style(f'Congratulations! add annotation question value successful. Deal count {message_annotation_deal_count}', fg='green'))
+
+
 def register_commands(app):
     app.cli.add_command(reset_password)
     app.cli.add_command(reset_email)
@@ -766,3 +792,4 @@ def register_commands(app):
     app.cli.add_command(normalization_collections)
     app.cli.add_command(migrate_default_input_to_dataset_query_variable)
     app.cli.add_command(add_qdrant_full_text_index)
+    app.cli.add_command(add_annotation_question_field_value)

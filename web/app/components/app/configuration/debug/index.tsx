@@ -24,9 +24,10 @@ import type { ModelConfig as BackendModelConfig, VisionFile } from '@/types/app'
 import { promptVariablesToUserInputsForm } from '@/utils/model-config'
 import TextGeneration from '@/app/components/app/text-generate/item'
 import { IS_CE_EDITION } from '@/config'
-import { useProviderContext } from '@/context/provider-context'
 import type { Inputs } from '@/models/debug'
 import { fetchFileUploadConfig } from '@/service/common'
+import type { Annotation as AnnotationType } from '@/models/log'
+import { useDefaultModel } from '@/app/components/header/account-setting/model-provider-page/hooks'
 
 type IDebug = {
   hasSetAPIKEY: boolean
@@ -67,8 +68,9 @@ const Debug: FC<IDebug> = ({
     datasetConfigs,
     externalDataToolsConfig,
     visionConfig,
+    annotationConfig,
   } = useContext(ConfigContext)
-  const { speech2textDefaultModel } = useProviderContext()
+  const { data: speech2textDefaultModel } = useDefaultModel(4)
   const [chatList, setChatList, getChatList] = useGetState<IChatItem[]>([])
   const chatListDomRef = useRef<HTMLDivElement>(null)
   const { data: fileUploadConfigResponse } = useSWR({ url: '/files/upload' }, fetchFileUploadConfig)
@@ -225,6 +227,7 @@ const Debug: FC<IDebug> = ({
       file_upload: {
         image: visionConfig,
       },
+      annotation_reply: annotationConfig,
     }
 
     if (isAdvancedMode) {
@@ -344,7 +347,26 @@ const Debug: FC<IDebug> = ({
         }
       },
       onMessageEnd: (messageEnd) => {
-        responseItem.citation = messageEnd.retriever_resources
+        if (messageEnd.metadata?.annotation_reply) {
+          responseItem.id = messageEnd.id
+          responseItem.annotation = ({
+            id: messageEnd.metadata.annotation_reply.id,
+            authorName: messageEnd.metadata.annotation_reply.account.name,
+          } as AnnotationType)
+          const newListWithAnswer = produce(
+            getChatList().filter(item => item.id !== responseItem.id && item.id !== placeholderAnswerId),
+            (draft) => {
+              if (!draft.find(item => item.id === questionId))
+                draft.push({ ...questionItem })
+
+              draft.push({
+                ...responseItem,
+              })
+            })
+          setChatList(newListWithAnswer)
+          return
+        }
+        responseItem.citation = messageEnd.metadata?.retriever_resources || []
 
         const newListWithAnswer = produce(
           getChatList().filter(item => item.id !== responseItem.id && item.id !== placeholderAnswerId),
@@ -477,6 +499,13 @@ const Debug: FC<IDebug> = ({
     })
   }
 
+  const varList = modelConfig.configs.prompt_variables.map((item: any) => {
+    return {
+      label: item.key,
+      value: inputs[item.key],
+    }
+  })
+
   return (
     <>
       <div className="shrink-0">
@@ -531,6 +560,9 @@ const Debug: FC<IDebug> = ({
                     ...visionConfig,
                     image_file_size_limit: fileUploadConfigResponse?.image_file_size_limit,
                   }}
+                  supportAnnotation
+                  appId={appId}
+                  onChatListChange={setChatList}
                 />
               </div>
             </div>
@@ -550,6 +582,9 @@ const Debug: FC<IDebug> = ({
                 messageId={messageId}
                 isError={false}
                 onRetry={() => { }}
+                supportAnnotation
+                appId={appId}
+                varList={varList}
               />
             )}
           </div>
@@ -566,7 +601,6 @@ const Debug: FC<IDebug> = ({
           />
         )}
       </div>
-
       {!hasSetAPIKEY && (<HasNotSetAPIKEY isTrailFinished={!IS_CE_EDITION} onSetting={onSetting} />)}
     </>
   )

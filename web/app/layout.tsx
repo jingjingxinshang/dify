@@ -1,3 +1,4 @@
+import type { Viewport } from 'next'
 import I18nServer from './components/i18n-server'
 import { getLocaleOnServer } from '@/i18n/server'
 
@@ -6,6 +7,14 @@ import './styles/markdown.scss'
 
 export const metadata = {
   title: 'Dify',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: 'cover',
+  userScalable: false,
 }
 
 const LocaleLayout = ({
@@ -17,6 +26,12 @@ const LocaleLayout = ({
 
   return (
     <html lang={locale ?? 'en'} className="h-full">
+      <head>
+        <meta name="theme-color" content="#FFFFFF" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+      </head>
       <body
         className="h-full select-auto"
         data-api-prefix={process.env.NEXT_PUBLIC_API_PREFIX}

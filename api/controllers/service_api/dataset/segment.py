@@ -3,9 +3,10 @@ from flask_restful import reqparse, marshal
 from werkzeug.exceptions import NotFound
 from controllers.service_api import api
 from controllers.service_api.app.error import ProviderNotInitializeError
-from controllers.service_api.wraps import DatasetApiResource
-from core.model_providers.error import ProviderTokenNotInitError, LLMBadRequestError
-from core.model_providers.model_factory import ModelFactory
+from controllers.service_api.wraps import DatasetApiResource, cloud_edition_billing_resource_check
+from core.errors.error import ProviderTokenNotInitError, LLMBadRequestError
+from core.model_manager import ModelManager
+from core.model_runtime.entities.model_entities import ModelType
 from extensions.ext_database import db
 from fields.segment_fields import segment_fields
 from models.dataset import Dataset, DocumentSegment
@@ -14,6 +15,8 @@ from services.dataset_service import DatasetService, DocumentService, SegmentSer
 
 class SegmentApi(DatasetApiResource):
     """Resource for segments."""
+
+    @cloud_edition_billing_resource_check('vector_space', 'dataset')
     def post(self, tenant_id, dataset_id, document_id):
         """Create single segment."""
         # check dataset
@@ -33,10 +36,12 @@ class SegmentApi(DatasetApiResource):
         # check embedding model setting
         if dataset.indexing_technique == 'high_quality':
             try:
-                ModelFactory.get_embedding_model(
+                model_manager = ModelManager()
+                model_manager.get_model_instance(
                     tenant_id=current_user.current_tenant_id,
-                    model_provider_name=dataset.embedding_model_provider,
-                    model_name=dataset.embedding_model
+                    provider=dataset.embedding_model_provider,
+                    model_type=ModelType.TEXT_EMBEDDING,
+                    model=dataset.embedding_model
                 )
             except LLMBadRequestError:
                 raise ProviderNotInitializeError(
@@ -75,10 +80,12 @@ class SegmentApi(DatasetApiResource):
         # check embedding model setting
         if dataset.indexing_technique == 'high_quality':
             try:
-                ModelFactory.get_embedding_model(
+                model_manager = ModelManager()
+                model_manager.get_model_instance(
                     tenant_id=current_user.current_tenant_id,
-                    model_provider_name=dataset.embedding_model_provider,
-                    model_name=dataset.embedding_model
+                    provider=dataset.embedding_model_provider,
+                    model_type=ModelType.TEXT_EMBEDDING,
+                    model=dataset.embedding_model
                 )
             except LLMBadRequestError:
                 raise ProviderNotInitializeError(
@@ -144,6 +151,7 @@ class DatasetSegmentApi(DatasetApiResource):
         SegmentService.delete_segment(segment, document, dataset)
         return {'result': 'success'}, 200
 
+    @cloud_edition_billing_resource_check('vector_space', 'dataset')
     def post(self, tenant_id, dataset_id, document_id, segment_id):
         # check dataset
         dataset_id = str(dataset_id)
@@ -164,10 +172,12 @@ class DatasetSegmentApi(DatasetApiResource):
         if dataset.indexing_technique == 'high_quality':
             # check embedding model setting
             try:
-                ModelFactory.get_embedding_model(
+                model_manager = ModelManager()
+                model_manager.get_model_instance(
                     tenant_id=current_user.current_tenant_id,
-                    model_provider_name=dataset.embedding_model_provider,
-                    model_name=dataset.embedding_model
+                    provider=dataset.embedding_model_provider,
+                    model_type=ModelType.TEXT_EMBEDDING,
+                    model=dataset.embedding_model
                 )
             except LLMBadRequestError:
                 raise ProviderNotInitializeError(

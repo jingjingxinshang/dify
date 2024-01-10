@@ -10,7 +10,6 @@ import { useBoolean, useGetState } from 'ahooks'
 import { checkOrSetAccessToken } from '../utils'
 import AppUnavailable from '../../base/app-unavailable'
 import useConversation from './hooks/use-conversation'
-import s from './style.module.css'
 import { ToastContext } from '@/app/components/base/toast'
 import ConfigScene from '@/app/components/share/chatbot/config-scence'
 import Header from '@/app/components/share/header'
@@ -55,15 +54,17 @@ const Main: FC<IMainProps> = ({
   const [promptConfig, setPromptConfig] = useState<PromptConfig | null>(null)
   const [inited, setInited] = useState<boolean>(false)
   const [plan, setPlan] = useState<string>('basic') // basic/plus/pro
+  const [canReplaceLogo, setCanReplaceLogo] = useState<boolean>(false)
+  const [customConfig, setCustomConfig] = useState<any>(null)
   // Can Use metadata(https://beta.nextjs.org/docs/api-reference/metadata) to set title. But it only works in server side client.
   useEffect(() => {
     if (siteInfo?.title) {
-      if (plan !== 'basic')
+      if (canReplaceLogo)
         document.title = `${siteInfo.title}`
       else
         document.title = `${siteInfo.title} - Powered by Dify`
     }
-  }, [siteInfo?.title, plan])
+  }, [siteInfo?.title, canReplaceLogo])
 
   /*
   * conversation info
@@ -283,9 +284,11 @@ const Main: FC<IMainProps> = ({
     (async () => {
       try {
         const [appData, conversationData, appParams]: any = await fetchInitData()
-        const { app_id: appId, site: siteInfo, plan }: any = appData
+        const { app_id: appId, site: siteInfo, plan, can_replace_logo, custom_config }: any = appData
         setAppId(appId)
         setPlan(plan)
+        setCanReplaceLogo(can_replace_logo)
+        setCustomConfig(custom_config)
         const tempIsPublicVersion = siteInfo.prompt_public
         setIsPublicVersion(tempIsPublicVersion)
         const prompt_template = ''
@@ -535,6 +538,19 @@ const Main: FC<IMainProps> = ({
     createNewChat()
   }
 
+  const handleConversationIdChange = (id: string) => {
+    if (id === '-1') {
+      createNewChat()
+      setConversationIdChangeBecauseOfNew(true)
+    }
+    else {
+      setConversationIdChangeBecauseOfNew(false)
+    }
+    // trigger handleConversationSwitch
+    setCurrConversationId(id, appId)
+    setIsShowSuggestion(false)
+  }
+
   const difyIcon = (
     <LogoHeader />
   )
@@ -557,11 +573,12 @@ const Main: FC<IMainProps> = ({
         icon_background={siteInfo.icon_background}
         isEmbedScene={true}
         isMobile={isMobile}
+        onCreateNewChat={() => handleConversationIdChange('-1')}
       />
 
       <div className={'flex bg-white overflow-hidden'}>
         <div className={cn(
-          isInstalledApp ? s.installedApp : 'h-[calc(100vh_-_3rem)]',
+          isInstalledApp ? 'h-full' : 'h-[calc(100vh_-_3rem)]',
           'flex-grow flex flex-col overflow-y-auto',
         )
         }>
@@ -576,6 +593,8 @@ const Main: FC<IMainProps> = ({
             savedInputs={currInputs as Record<string, any>}
             onInputsChange={setCurrInputs}
             plan={plan}
+            canReplaceLogo={canReplaceLogo}
+            customConfig={customConfig}
           ></ConfigScene>
           {
             shouldReload && (

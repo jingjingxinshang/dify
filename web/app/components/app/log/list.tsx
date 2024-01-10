@@ -1,7 +1,6 @@
 'use client'
 import type { FC } from 'react'
 import React, { useEffect, useState } from 'react'
-// import type { Log } from '@/models/log'
 import useSWR from 'swr'
 import {
   HandThumbDownIcon,
@@ -20,7 +19,7 @@ import VarPanel from './var-panel'
 import { randomString } from '@/utils'
 import { EditIconSolid } from '@/app/components/app/chat/icon-component'
 import type { FeedbackFunc, Feedbacktype, IChatItem, SubmitAnnotationFunc } from '@/app/components/app/chat/type'
-import type { Annotation, ChatConversationFullDetailResponse, ChatConversationGeneralDetail, ChatConversationsResponse, ChatMessage, ChatMessagesRequest, CompletionConversationFullDetailResponse, CompletionConversationGeneralDetail, CompletionConversationsResponse } from '@/models/log'
+import type { ChatConversationFullDetailResponse, ChatConversationGeneralDetail, ChatConversationsResponse, ChatMessage, ChatMessagesRequest, CompletionConversationFullDetailResponse, CompletionConversationGeneralDetail, CompletionConversationsResponse, LogAnnotation } from '@/models/log'
 import type { App } from '@/types/app'
 import Loading from '@/app/components/base/loading'
 import Drawer from '@/app/components/base/drawer'
@@ -30,9 +29,11 @@ import Tooltip from '@/app/components/base/tooltip'
 import { ToastContext } from '@/app/components/base/toast'
 import { fetchChatConversationDetail, fetchChatMessages, fetchCompletionConversationDetail, updateLogMessageAnnotations, updateLogMessageFeedbacks } from '@/service/log'
 import { TONE_LIST } from '@/config'
-import ModelIcon from '@/app/components/app/configuration/config-model/model-icon'
-import ModelName from '@/app/components/app/configuration/config-model/model-name'
-import ModelModeTypeLabel from '@/app/components/app/configuration/config-model/model-mode-type-label'
+import ModelIcon from '@/app/components/header/account-setting/model-provider-page/model-icon'
+import { useTextGenerationCurrentProviderAndModelAndModelList } from '@/app/components/header/account-setting/model-provider-page/hooks'
+import ModelName from '@/app/components/header/account-setting/model-provider-page/model-name'
+import useBreakpoints, { MediaType } from '@/hooks/use-breakpoints'
+import TextGeneration from '@/app/components/app/text-generate/item'
 
 type IConversationList = {
   logs?: ChatConversationsResponse | CompletionConversationsResponse
@@ -41,7 +42,6 @@ type IConversationList = {
 }
 
 const defaultValue = 'N/A'
-const emptyText = '[Empty]'
 
 type IDrawerContext = {
   onClose: () => void
@@ -82,7 +82,6 @@ const getFormattedChatList = (messages: ChatMessage[]) => {
       log: item.message as any,
       message_files: item.message_files,
     })
-
     newChatList.push({
       id: item.id,
       content: item.answer,
@@ -95,7 +94,26 @@ const getFormattedChatList = (messages: ChatMessage[]) => {
         tokens: item.answer_tokens + item.message_tokens,
         latency: item.provider_response_latency.toFixed(2),
       },
-      annotation: item.annotation,
+      annotation: (() => {
+        if (item.annotation_hit_history) {
+          return {
+            id: item.annotation_hit_history.annotation_id,
+            authorName: item.annotation_hit_history.annotation_create_account?.name || 'N/A',
+            created_at: item.annotation_hit_history.created_at,
+          }
+        }
+
+        if (item.annotation) {
+          return {
+            id: '',
+            authorName: '',
+            logAnnotation: item.annotation,
+            created_at: 0,
+          }
+        }
+
+        return undefined
+      })(),
     })
   })
   return newChatList
@@ -110,7 +128,7 @@ type IDetailPanel<T> = {
   onSubmitAnnotation: SubmitAnnotationFunc
 }
 
-function DetailPanel<T extends ChatConversationFullDetailResponse | CompletionConversationFullDetailResponse>({ detail, onFeedback, onSubmitAnnotation }: IDetailPanel<T>) {
+function DetailPanel<T extends ChatConversationFullDetailResponse | CompletionConversationFullDetailResponse>({ detail, onFeedback }: IDetailPanel<T>) {
   const { onClose, appDetail } = useContext(DrawerContext)
   const { t } = useTranslation()
   const [items, setItems] = React.useState<IChatItem[]>([])
@@ -156,7 +174,7 @@ function DetailPanel<T extends ChatConversationFullDetailResponse | CompletionCo
   useEffect(() => {
     if (appDetail?.id && detail.id && appDetail?.mode === 'chat')
       fetchData()
-  }, [appDetail?.id, detail.id])
+  }, [appDetail?.id, detail.id, appDetail?.mode])
 
   const isChatMode = appDetail?.mode === 'chat'
 
@@ -170,6 +188,12 @@ function DetailPanel<T extends ChatConversationFullDetailResponse | CompletionCo
 
   const modelName = (detail.model_config as any).model.name
   const provideName = (detail.model_config as any).model.provider as any
+  const {
+    currentModel,
+    currentProvider,
+  } = useTextGenerationCurrentProviderAndModelAndModelList(
+    { provider: provideName, model: modelName },
+  )
   const varList = (detail.model_config as any).user_input_form.map((item: any) => {
     const itemContent = item[Object.keys(item)[0]]
     return {
@@ -200,19 +224,19 @@ function DetailPanel<T extends ChatConversationFullDetailResponse | CompletionCo
         <div className='text-gray-500 text-[10px] leading-[14px]'>{isChatMode ? t('appLog.detail.conversationId') : t('appLog.detail.time')}</div>
         <div className='text-gray-700 text-[13px] leading-[18px]'>{isChatMode ? detail.id?.split('-').slice(-1)[0] : dayjs.unix(detail.created_at).format(t('appLog.dateTimeFormat') as string)}</div>
       </div>
-      <div className='flex items-center'>
+      <div className='flex items-center flex-wrap gap-y-1 justify-end'>
         <div
           className={cn('mr-2 flex items-center border h-8 px-2 space-x-2 rounded-lg bg-indigo-25 border-[#2A87F5]')}
         >
           <ModelIcon
             className='!w-5 !h-5'
-            modelId={modelName}
-            providerName={provideName}
+            provider={currentProvider}
+            modelName={currentModel?.model}
           />
-          <div className='text-[13px] text-gray-900 font-medium'>
-            <ModelName modelId={modelName} modelDisplayName={modelName} />
-          </div>
-          <ModelModeTypeLabel type={detail?.model_config.model.mode as any} isHighlight />
+          <ModelName
+            modelItem={currentModel!}
+            showMode
+          />
         </div>
         <Popover
           position='br'
@@ -252,14 +276,26 @@ function DetailPanel<T extends ChatConversationFullDetailResponse | CompletionCo
     )}
 
     {!isChatMode
-      ? <div className="px-2.5 py-4">
-        <Chat
-          chatList={getFormattedChatList([detail.message])}
-          isHideSendInput={true}
-          onFeedback={onFeedback}
-          onSubmitAnnotation={onSubmitAnnotation}
-          displayScene='console'
-          isShowPromptLog
+      ? <div className="px-6 py-4">
+        <div className='flex h-[18px] items-center space-x-3'>
+          <div className='leading-[18px] text-xs font-semibold text-gray-500 uppercase'>{t('appLog.table.header.output')}</div>
+          <div className='grow h-[1px]' style={{
+            background: 'linear-gradient(270deg, rgba(243, 244, 246, 0) 0%, rgb(243, 244, 246) 100%)',
+          }}></div>
+        </div>
+        <TextGeneration
+          className='mt-2'
+          content={detail.message.answer}
+          messageId={detail.message.id}
+          isError={false}
+          onRetry={() => { }}
+          isInstalledApp={false}
+          supportFeedback
+          feedback={detail.message.feedbacks.find((item: any) => item.from_source === 'admin')}
+          onFeedback={feedback => onFeedback(detail.message.id, feedback)}
+          supportAnnotation
+          appId={appDetail?.id}
+          varList={varList}
         />
       </div>
       : items.length < 8
@@ -268,9 +304,11 @@ function DetailPanel<T extends ChatConversationFullDetailResponse | CompletionCo
             chatList={items}
             isHideSendInput={true}
             onFeedback={onFeedback}
-            onSubmitAnnotation={onSubmitAnnotation}
             displayScene='console'
             isShowPromptLog
+            supportAnnotation
+            appId={appDetail?.id}
+            onChatListChange={setItems}
           />
         </div>
         : <div
@@ -308,7 +346,6 @@ function DetailPanel<T extends ChatConversationFullDetailResponse | CompletionCo
               chatList={items}
               isHideSendInput={true}
               onFeedback={onFeedback}
-              onSubmitAnnotation={onSubmitAnnotation}
               displayScene='console'
               isShowPromptLog
             />
@@ -412,12 +449,16 @@ const ChatConversationDetailComp: FC<{ appId?: string; conversationId?: string }
  */
 const ConversationList: FC<IConversationList> = ({ logs, appDetail, onRefresh }) => {
   const { t } = useTranslation()
+
+  const media = useBreakpoints()
+  const isMobile = media === MediaType.mobile
+
   const [showDrawer, setShowDrawer] = useState<boolean>(false) // Whether to display the chat details drawer
   const [currentConversation, setCurrentConversation] = useState<ChatConversationGeneralDetail | CompletionConversationGeneralDetail | undefined>() // Currently selected conversation
   const isChatMode = appDetail?.mode === 'chat' // Whether the app is a chat app
 
   // Annotated data needs to be highlighted
-  const renderTdValue = (value: string | number | null, isEmptyStyle: boolean, isHighlight = false, annotation?: Annotation) => {
+  const renderTdValue = (value: string | number | null, isEmptyStyle: boolean, isHighlight = false, annotation?: LogAnnotation) => {
     return (
       <Tooltip
         htmlContent={
@@ -445,17 +486,17 @@ const ConversationList: FC<IConversationList> = ({ logs, appDetail, onRefresh })
     return <Loading />
 
   return (
-    <>
-      <table className={`w-full border-collapse border-0 text-sm mt-3 ${s.logTable}`}>
-        <thead className="h-8 leading-8 border-b  border-gray-200 text-gray-500 font-bold">
+    <div className='overflow-x-auto'>
+      <table className={`w-full min-w-[440px] border-collapse border-0 text-sm mt-3 ${s.logTable}`}>
+        <thead className="h-8 leading-8 border-b border-gray-200 text-gray-500 font-bold">
           <tr>
-            <td className='w-[1.375rem]'></td>
-            <td>{t('appLog.table.header.time')}</td>
-            <td>{t('appLog.table.header.endUser')}</td>
-            <td>{isChatMode ? t('appLog.table.header.summary') : t('appLog.table.header.input')}</td>
-            <td>{isChatMode ? t('appLog.table.header.messageCount') : t('appLog.table.header.output')}</td>
-            <td>{t('appLog.table.header.userRate')}</td>
-            <td>{t('appLog.table.header.adminRate')}</td>
+            <td className='w-[1.375rem] whitespace-nowrap'></td>
+            <td className='whitespace-nowrap'>{t('appLog.table.header.time')}</td>
+            <td className='whitespace-nowrap'>{t('appLog.table.header.endUser')}</td>
+            <td className='whitespace-nowrap'>{isChatMode ? t('appLog.table.header.summary') : t('appLog.table.header.input')}</td>
+            <td className='whitespace-nowrap'>{isChatMode ? t('appLog.table.header.messageCount') : t('appLog.table.header.output')}</td>
+            <td className='whitespace-nowrap'>{t('appLog.table.header.userRate')}</td>
+            <td className='whitespace-nowrap'>{t('appLog.table.header.adminRate')}</td>
           </tr>
         </thead>
         <tbody className="text-gray-500">
@@ -504,9 +545,9 @@ const ConversationList: FC<IConversationList> = ({ logs, appDetail, onRefresh })
       <Drawer
         isOpen={showDrawer}
         onClose={onCloseDrawer}
-        mask={false}
+        mask={isMobile}
         footer={null}
-        panelClassname='mt-16 mr-2 mb-3 !p-0 !max-w-[640px] rounded-b-xl'
+        panelClassname='mt-16 mx-2 sm:mr-2 mb-3 !p-0 !max-w-[640px] rounded-xl'
       >
         <DrawerContext.Provider value={{
           onClose: onCloseDrawer,
@@ -518,7 +559,7 @@ const ConversationList: FC<IConversationList> = ({ logs, appDetail, onRefresh })
           }
         </DrawerContext.Provider>
       </Drawer>
-    </>
+    </div>
   )
 }
 

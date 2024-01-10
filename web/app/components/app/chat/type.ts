@@ -72,7 +72,16 @@ export type IChatItem = {
 
 export type MessageEnd = {
   id: string
-  retriever_resources?: CitationItem[]
+  metadata: {
+    retriever_resources?: CitationItem[]
+    annotation_reply: {
+      id: string
+      account: {
+        id: string
+        name: string
+      }
+    }
+  }
 }
 
 export type MessageReplace = {
@@ -80,4 +89,13 @@ export type MessageReplace = {
   task_id: string
   answer: string
   conversation_id: string
+}
+
+export type AnnotationReply = {
+  id: string
+  task_id: string
+  answer: string
+  conversation_id: string
+  annotation_id: string
+  annotation_author_name: string
 }

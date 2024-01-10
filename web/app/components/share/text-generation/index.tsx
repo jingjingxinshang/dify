@@ -71,6 +71,7 @@ const TextGeneration: FC<IMainProps> = ({
   const [inputs, setInputs] = useState<Record<string, any>>({})
   const [appId, setAppId] = useState<string>('')
   const [siteInfo, setSiteInfo] = useState<SiteInfo | null>(null)
+  const [canReplaceLogo, setCanReplaceLogo] = useState<boolean>(false)
   const [promptConfig, setPromptConfig] = useState<PromptConfig | null>(null)
   const [moreLikeThisConfig, setMoreLikeThisConfig] = useState<MoreLikeThisConfig | null>(null)
 
@@ -278,7 +279,7 @@ const TextGeneration: FC<IMainProps> = ({
       }
     })
     setAllTaskList(allTaskList)
-
+    setCurrGroupNum(0)
     setControlSend(Date.now())
     // clear run once task status
     setControlStopResponding(Date.now())
@@ -294,10 +295,7 @@ const TextGeneration: FC<IMainProps> = ({
     // avoid add many task at the same time
     if (needToAddNextGroupTask)
       setCurrGroupNum(hadRunedTaskNum)
-    // console.group()
-    // console.log(`[#${taskId}]: ${isSuccess ? 'success' : 'fail'}.currGroupNum: ${getCurrGroupNum()}.hadRunedTaskNum: ${hadRunedTaskNum}, needToAddNextGroupTask: ${needToAddNextGroupTask}`)
-    // console.log([...allTasklistLatest.filter(task => [TaskStatus.completed, TaskStatus.failed].includes(task.status)).map(item => item.id), taskId].sort((a: any, b: any) => a - b).join(','))
-    // console.groupEnd()
+
     const nextPendingTaskIds = needToAddNextGroupTask ? pendingTaskList.slice(0, GROUP_SIZE).map(item => item.id) : []
     const newAllTaskList = allTasklistLatest.map((item) => {
       if (item.id === taskId) {
@@ -343,9 +341,10 @@ const TextGeneration: FC<IMainProps> = ({
   useEffect(() => {
     (async () => {
       const [appData, appParams]: any = await fetchInitData()
-      const { app_id: appId, site: siteInfo } = appData
+      const { app_id: appId, site: siteInfo, can_replace_logo } = appData
       setAppId(appId)
       setSiteInfo(siteInfo as SiteInfo)
+      setCanReplaceLogo(can_replace_logo)
       changeLanguage(siteInfo.default_language)
 
       const { user_input_form, more_like_this, file_upload, sensitive_word_avoidance }: any = appParams
@@ -364,11 +363,21 @@ const TextGeneration: FC<IMainProps> = ({
 
   // Can Use metadata(https://beta.nextjs.org/docs/api-reference/metadata) to set title. But it only works in server side client.
   useEffect(() => {
-    if (siteInfo?.title)
-      document.title = `${siteInfo.title} - Powered by Dify`
-  }, [siteInfo?.title])
+    if (siteInfo?.title) {
+      if (canReplaceLogo)
+        document.title = `${siteInfo.title}`
+      else
+        document.title = `${siteInfo.title} - Powered by Dify`
+    }
+  }, [siteInfo?.title, canReplaceLogo])
 
-  const [isShowResSidebar, { setTrue: showResSidebar, setFalse: hideResSidebar }] = useBoolean(false)
+  const [isShowResSidebar, { setTrue: doShowResSidebar, setFalse: hideResSidebar }] = useBoolean(false)
+  const showResSidebar = () => {
+    // fix: useClickAway hideResSidebar will close sidebar
+    setTimeout(() => {
+      doShowResSidebar()
+    }, 0)
+  }
   const resRef = useRef<HTMLDivElement>(null)
   useClickAway(() => {
     hideResSidebar()
@@ -399,6 +408,16 @@ const TextGeneration: FC<IMainProps> = ({
   const renderBatchRes = () => {
     return (showTaskList.map(task => renderRes(task)))
   }
+
+  const resWrapClassNames = (() => {
+    if (isPC)
+      return 'grow h-full'
+
+    if (!isShowResSidebar)
+      return 'none'
+
+    return cn('fixed z-50 inset-0', isTablet ? 'pl-[128px]' : 'pl-6')
+  })()
 
   const renderResWrap = (
     <div
@@ -572,22 +591,14 @@ const TextGeneration: FC<IMainProps> = ({
         </div>
 
         {/* Result */}
-        {isPC && (
-          <div className='grow h-full'>
-            {renderResWrap}
-          </div>
-        )}
-
-        {(!isPC && isShowResSidebar) && (
-          <div
-            className={cn('fixed z-50 inset-0', isTablet ? 'pl-[128px]' : 'pl-6')}
-            style={{
-              background: 'rgba(35, 56, 118, 0.2)',
-            }}
-          >
-            {renderResWrap}
-          </div>
-        )}
+        <div
+          className={resWrapClassNames}
+          style={{
+            background: (!isPC && isShowResSidebar) ? 'rgba(35, 56, 118, 0.2)' : 'none',
+          }}
+        >
+          {renderResWrap}
+        </div>
       </div>
     </>
   )

@@ -2,6 +2,7 @@ import type { IOnCompleted, IOnData, IOnError, IOnMessageEnd, IOnMessageReplace 
 import { get, post, ssePost } from './base'
 import type { ChatPromptConfig, CompletionPromptConfig } from '@/models/debug'
 import type { ModelModeType } from '@/types/app'
+import type { ModelParameterRule } from '@/app/components/header/account-setting/model-provider-page/declarations'
 
 export type AutomaticRes = {
   prompt: string
@@ -64,9 +65,9 @@ export const generateRule = (body: Record<string, any>) => {
 export const fetchModelParams = (providerName: string, modelId: string) => {
   return get(`workspaces/current/model-providers/${providerName}/models/parameter-rules`, {
     params: {
-      model_name: modelId,
+      model: modelId,
     },
-  })
+  }) as Promise<{ data: ModelParameterRule[] }>
 }
 
 export const fetchPromptTemplate = ({

@@ -123,6 +123,10 @@ export type ICurrentWorkspace = Omit<IWorkspace, 'current'> & {
   providers: Provider[]
   in_trail: boolean
   trial_end_reason?: string
+  custom_config?: {
+    remove_webapp_brand?: boolean
+    replace_webapp_logo?: string
+  }
 }
 
 export type DataSourceNotionPage = {
@@ -177,11 +181,6 @@ export type FileUploadConfigResponse = {
   file_size_limit: number
   batch_count_limit: number
   image_file_size_limit?: number | string
-}
-
-export type DocumentsLimitResponse = {
-  documents_count: number
-  documents_limit: number
 }
 
 export type InvitationResult = {

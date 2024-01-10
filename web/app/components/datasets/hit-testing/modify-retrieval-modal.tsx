@@ -8,8 +8,8 @@ import type { RetrievalConfig } from '@/types/app'
 import RetrievalMethodConfig from '@/app/components/datasets/common/retrieval-method-config'
 import EconomicalRetrievalMethodConfig from '@/app/components/datasets/common/economical-retrieval-method-config'
 import Button from '@/app/components/base/button'
-import { useProviderContext } from '@/context/provider-context'
 import { ensureRerankModelSelected, isReRankModelSelected } from '@/app/components/datasets/common/check-rerank-model'
+import { useModelListAndDefaultModelAndCurrentProviderAndModel } from '@/app/components/header/account-setting/model-provider-page/hooks'
 
 type Props = {
   indexMethod: string
@@ -36,16 +36,16 @@ const ModifyRetrievalModal: FC<Props> = ({
   // }, ref)
 
   const {
-    rerankDefaultModel,
-    isRerankDefaultModelVaild,
-    rerankModelList,
-  } = useProviderContext()
+    modelList: rerankModelList,
+    defaultModel: rerankDefaultModel,
+    currentModel: isRerankDefaultModelVaild,
+  } = useModelListAndDefaultModelAndCurrentProviderAndModel(3)
 
   const handleSave = () => {
     if (
       !isReRankModelSelected({
         rerankDefaultModel,
-        isRerankDefaultModelVaild,
+        isRerankDefaultModelVaild: !!isRerankDefaultModelVaild,
         rerankModelList,
         retrievalConfig,
         indexMethod,
@@ -66,9 +66,8 @@ const ModifyRetrievalModal: FC<Props> = ({
 
   return (
     <div
-      className='fixed top-16 right-2 flex flex-col bg-white border-[0.5px] border-gray-200 rounded-xl shadow-xl z-10'
+      className='w-full flex flex-col bg-white border-[0.5px] border-gray-200 rounded-xl shadow-xl'
       style={{
-        width: 632,
         height: 'calc(100vh - 72px)',
       }}
       ref={ref}

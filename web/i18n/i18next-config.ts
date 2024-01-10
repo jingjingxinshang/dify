@@ -19,6 +19,8 @@ import appApiEn from './lang/app-api.en'
 import appApiZh from './lang/app-api.zh'
 import appLogEn from './lang/app-log.en'
 import appLogZh from './lang/app-log.zh'
+import appAnnotationEn from './lang/app-annotation.en'
+import appAnnotationZh from './lang/app-annotation.zh'
 import shareEn from './lang/share-app.en'
 import shareZh from './lang/share-app.zh'
 import datasetEn from './lang/dataset.en'
@@ -33,6 +35,10 @@ import datasetCreationEn from './lang/dataset-creation.en'
 import datasetCreationZh from './lang/dataset-creation.zh'
 import exploreEn from './lang/explore.en'
 import exploreZh from './lang/explore.zh'
+import billingEn from './lang/billing.en'
+import billingZh from './lang/billing.zh'
+import customEn from './lang/custom.en'
+import customZh from './lang/custom.zh'
 
 const resources = {
   'en': {
@@ -47,6 +53,7 @@ const resources = {
       appDebug: appDebugEn,
       appApi: appApiEn,
       appLog: appLogEn,
+      appAnnotation: appAnnotationEn,
       // share
       share: shareEn,
       dataset: datasetEn,
@@ -55,6 +62,9 @@ const resources = {
       datasetSettings: datasetSettingsEn,
       datasetCreation: datasetCreationEn,
       explore: exploreEn,
+      // billing
+      billing: billingEn,
+      custom: customEn,
     },
   },
   'zh-Hans': {
@@ -69,6 +79,7 @@ const resources = {
       appDebug: appDebugZh,
       appApi: appApiZh,
       appLog: appLogZh,
+      appAnnotation: appAnnotationZh,
       // share
       share: shareZh,
       dataset: datasetZh,
@@ -77,6 +88,8 @@ const resources = {
       datasetSettings: datasetSettingsZh,
       datasetCreation: datasetCreationZh,
       explore: exploreZh,
+      billing: billingZh,
+      custom: customZh,
     },
   },
 }

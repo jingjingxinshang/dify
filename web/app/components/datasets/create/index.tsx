@@ -11,8 +11,8 @@ import type { DataSet, FileItem, createDocumentResponse } from '@/models/dataset
 import { fetchDataSource } from '@/service/common'
 import { fetchDatasetDetail } from '@/service/datasets'
 import type { NotionPage } from '@/models/common'
-import { useProviderContext } from '@/context/provider-context'
 import { useModalContext } from '@/context/modal-context'
+import { useDefaultModel } from '@/app/components/header/account-setting/model-provider-page/hooks'
 
 type DatasetUpdateFormProps = {
   datasetId?: string
@@ -28,7 +28,7 @@ const DatasetUpdateForm = ({ datasetId }: DatasetUpdateFormProps) => {
   const [fileList, setFiles] = useState<FileItem[]>([])
   const [result, setResult] = useState<createDocumentResponse | undefined>()
   const [hasError, setHasError] = useState(false)
-  const { embeddingsDefaultModel } = useProviderContext()
+  const { data: embeddingsDefaultModel } = useDefaultModel(2)
 
   const [notionPages, setNotionPages] = useState<NotionPage[]>([])
   const updateNotionPages = (value: NotionPage[]) => {
@@ -103,7 +103,7 @@ const DatasetUpdateForm = ({ datasetId }: DatasetUpdateFormProps) => {
 
   return (
     <div className='flex' style={{ height: 'calc(100vh - 56px)' }}>
-      <div className="flex flex-col w-56 overflow-y-auto bg-white border-r border-gray-200 shrink-0">
+      <div className="flex flex-col w-11 sm:w-56 overflow-y-auto bg-white border-r border-gray-200 shrink-0">
         <StepsNavBar step={step} datasetId={datasetId} />
       </div>
       <div className="grow bg-white">

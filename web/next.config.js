@@ -10,10 +10,10 @@ const nextConfig = {
   productionBrowserSourceMaps: false,
   pageExtensions: ['ts', 'tsx', 'js', 'jsx', 'md', 'mdx'],
   experimental: {
-    appDir: true,
   },
   eslint: {
     ignoreDuringBuilds: true,
+    dirs: ['app', 'bin', 'config', 'context', 'hooks', 'i18n', 'models', 'service', 'test', 'types', 'utils'],
   },
   typescript: {
     ignoreBuildErrors: true,

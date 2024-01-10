@@ -11,7 +11,7 @@ from libs.login import _get_user
 from extensions.ext_database import db
 from models.account import Tenant, TenantAccountJoin, Account
 from models.model import ApiToken, App
-
+from services.feature_service import FeatureService
 
 def validate_app_token(view=None):
     def decorator(view):
@@ -38,6 +38,33 @@ def validate_app_token(view=None):
     # if view is None, it means that the decorator is used without parentheses
     # use the decorator as a function for method_decorators
     return decorator
+
+
+def cloud_edition_billing_resource_check(resource: str,
+                                         api_token_type: str,
+                                         error_msg: str = "You have reached the limit of your subscription."):
+    def interceptor(view):
+        def decorated(*args, **kwargs):
+            api_token = validate_and_get_api_token(api_token_type)
+            features = FeatureService.get_features(api_token.tenant_id)
+
+            if features.billing.enabled:
+                members = features.members
+                apps = features.apps
+                vector_space = features.vector_space
+
+                if resource == 'members' and 0 < members.limit <= members.size:
+                    raise Unauthorized(error_msg)
+                elif resource == 'apps' and 0 < apps.limit <= apps.size:
+                    raise Unauthorized(error_msg)
+                elif resource == 'vector_space' and 0 < vector_space.limit <= vector_space.size:
+                    raise Unauthorized(error_msg)
+                else:
+                    return view(*args, **kwargs)
+
+            return view(*args, **kwargs)
+        return decorated
+    return interceptor
 
 
 def validate_dataset_token(view=None):
