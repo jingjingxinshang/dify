@@ -1,10 +1,10 @@
-from typing import Optional, Union, Generator, cast, List, IO
+from typing import IO, Generator, List, Optional, Union, cast
 
 from core.entities.provider_configuration import ProviderModelBundle
 from core.errors.error import ProviderTokenNotInitError
 from core.model_runtime.callbacks.base_callback import Callback
 from core.model_runtime.entities.llm_entities import LLMResult
-from core.model_runtime.entities.message_entities import PromptMessageTool, PromptMessage
+from core.model_runtime.entities.message_entities import PromptMessage, PromptMessageTool
 from core.model_runtime.entities.model_entities import ModelType
 from core.model_runtime.entities.rerank_entities import RerankResult
 from core.model_runtime.entities.text_embedding_entities import TextEmbeddingResult
@@ -12,6 +12,7 @@ from core.model_runtime.model_providers.__base.large_language_model import Large
 from core.model_runtime.model_providers.__base.moderation_model import ModerationModel
 from core.model_runtime.model_providers.__base.rerank_model import RerankModel
 from core.model_runtime.model_providers.__base.speech2text_model import Speech2TextModel
+from core.model_runtime.model_providers.__base.tts_model import TTSModel
 from core.model_runtime.model_providers.__base.text_embedding_model import TextEmbeddingModel
 from core.provider_manager import ProviderManager
 
@@ -144,7 +145,7 @@ class ModelInstance:
             user=user
         )
 
-    def invoke_speech2text(self, file: IO[bytes], user: Optional[str] = None, **params) \
+    def invoke_speech2text(self, file: IO[bytes], user: Optional[str] = None) \
             -> str:
         """
         Invoke large language model
@@ -161,8 +162,29 @@ class ModelInstance:
             model=self.model,
             credentials=self.credentials,
             file=file,
+            user=user
+        )
+
+    def invoke_tts(self, content_text: str, streaming: bool, user: Optional[str] = None) \
+            -> str:
+        """
+        Invoke large language model
+
+        :param content_text: text content to be translated
+        :param user: unique user id
+        :param streaming: output is streaming
+        :return: text for given audio file
+        """
+        if not isinstance(self.model_type_instance, TTSModel):
+            raise Exception(f"Model type instance is not TTSModel")
+
+        self.model_type_instance = cast(TTSModel, self.model_type_instance)
+        return self.model_type_instance.invoke(
+            model=self.model,
+            credentials=self.credentials,
+            content_text=content_text,
             user=user,
-            **params
+            streaming=streaming
         )
 
 
@@ -179,6 +201,8 @@ class ModelManager:
         :param model: model name
         :return:
         """
+        if not provider:
+            return self.get_default_model_instance(tenant_id, model_type)
         provider_model_bundle = self._provider_manager.get_provider_model_bundle(
             tenant_id=tenant_id,
             provider=provider,

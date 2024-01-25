@@ -1,12 +1,12 @@
 # -*- coding:utf-8 -*-
+import random
 import re
+import string
 import subprocess
 import uuid
 from datetime import datetime
 from hashlib import sha256
 from zoneinfo import available_timezones
-import random
-import string
 
 from flask_restful import fields
 
@@ -112,16 +112,6 @@ def _get_float(value):
         return float(value)
     except (TypeError, ValueError):
         raise ValueError('{0} is not a valid float'.format(value))
-
-
-def supported_language(lang):
-    if lang in ['en-US', 'zh-Hans']:
-        return lang
-
-    error = ('{lang} is not a valid language.'
-             .format(lang=lang))
-    raise ValueError(error)
-
 
 def timezone(timezone_string):
     if timezone_string and timezone_string in available_timezones():

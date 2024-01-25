@@ -2,9 +2,8 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any, Optional
 
-from pydantic import BaseModel
-
 from core.model_runtime.entities.common_entities import I18nObject
+from pydantic import BaseModel
 
 
 class ModelType(Enum):
@@ -16,7 +15,7 @@ class ModelType(Enum):
     RERANK = "rerank"
     SPEECH2TEXT = "speech2text"
     MODERATION = "moderation"
-    # TTS = "tts"
+    TTS = "tts"
     # TEXT2IMG = "text2img"
 
     @classmethod
@@ -34,6 +33,8 @@ class ModelType(Enum):
             return cls.RERANK
         elif origin_model_type == 'speech2text' or origin_model_type == cls.SPEECH2TEXT.value:
             return cls.SPEECH2TEXT
+        elif origin_model_type == 'tts' or origin_model_type == cls.TTS.value:
+            return cls.TTS
         elif origin_model_type == cls.MODERATION.value:
             return cls.MODERATION
         else:
@@ -53,6 +54,8 @@ class ModelType(Enum):
             return 'reranking'
         elif self == self.SPEECH2TEXT:
             return 'speech2text'
+        elif self == self.TTS:
+            return 'tts'
         elif self == self.MODERATION:
             return 'moderation'
         else:
@@ -121,6 +124,10 @@ class ModelPropertyKey(Enum):
     FILE_UPLOAD_LIMIT = "file_upload_limit"
     SUPPORTED_FILE_EXTENSIONS = "supported_file_extensions"
     MAX_CHARACTERS_PER_CHUNK = "max_characters_per_chunk"
+    DEFAULT_VOICE = "default_voice"
+    WORD_LIMIT = "word_limit"
+    AUDOI_TYPE = "audio_type"
+    MAX_WORKERS = "max_workers"
 
 
 class ProviderModel(BaseModel):
@@ -150,8 +157,8 @@ class ParameterRule(BaseModel):
     help: Optional[I18nObject] = None
     required: bool = False
     default: Optional[Any] = None
-    min: Optional[float | int] = None
-    max: Optional[float | int] = None
+    min: Optional[float] = None
+    max: Optional[float] = None
     precision: Optional[int] = None
     options: list[str] = []
 

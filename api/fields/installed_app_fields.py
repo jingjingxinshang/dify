@@ -1,5 +1,4 @@
 from flask_restful import fields
-
 from libs.helper import TimestampField
 
 app_fields = {
@@ -18,6 +17,7 @@ installed_app_fields = {
     'last_used_at': TimestampField,
     'editable': fields.Boolean,
     'uninstallable': fields.Boolean,
+    'is_agent': fields.Boolean,
 }
 
 installed_app_list_fields = {

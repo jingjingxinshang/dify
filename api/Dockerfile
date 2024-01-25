@@ -13,21 +13,24 @@ RUN pip install --prefix=/pkg -r requirements.txt
 # build stage
 FROM python:3.10-slim AS builder
 
+
 ENV FLASK_APP app.py
 ENV EDITION SELF_HOSTED
 ENV DEPLOY_ENV PRODUCTION
 ENV CONSOLE_API_URL http://127.0.0.1:5001
 ENV CONSOLE_WEB_URL http://127.0.0.1:3000
 ENV SERVICE_API_URL http://127.0.0.1:5001
-ENV APP_API_URL http://127.0.0.1:5001
 ENV APP_WEB_URL http://127.0.0.1:3000
 
 EXPOSE 5001
 
+# set timezone
+ENV TZ UTC
+
 WORKDIR /app/api
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends bash curl wget vim nodejs \
+    && apt-get install -y --no-install-recommends bash curl wget vim nodejs ffmpeg \
     && apt-get autoremove \
     && rm -rf /var/lib/apt/lists/*
 

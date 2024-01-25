@@ -1,12 +1,11 @@
 import enum
 from typing import Optional
 
-from pydantic import BaseModel
-
 from core.file.upload_file_parser import UploadFileParser
 from core.model_runtime.entities.message_entities import ImagePromptMessageContent
 from extensions.ext_database import db
 from models.model import UploadFile
+from pydantic import BaseModel
 
 
 class FileType(enum.Enum):
@@ -23,6 +22,7 @@ class FileType(enum.Enum):
 class FileTransferMethod(enum.Enum):
     REMOTE_URL = 'remote_url'
     LOCAL_FILE = 'local_file'
+    TOOL_FILE = 'tool_file'
 
     @staticmethod
     def value_of(value):
@@ -31,6 +31,16 @@ class FileTransferMethod(enum.Enum):
                 return member
         raise ValueError(f"No matching enum found for value '{value}'")
 
+class FileBelongsTo(enum.Enum):
+    USER = 'user'
+    ASSISTANT = 'assistant'
+
+    @staticmethod
+    def value_of(value):
+        for member in FileBelongsTo:
+            if member.value == value:
+                return member
+        raise ValueError(f"No matching enum found for value '{value}'")
 
 class FileObj(BaseModel):
     id: Optional[str]

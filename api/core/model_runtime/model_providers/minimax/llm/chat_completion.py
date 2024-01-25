@@ -1,12 +1,14 @@
-from core.model_runtime.model_providers.minimax.llm.errors import BadRequestError, InvalidAPIKeyError, \
-    InternalServerError, RateLimitReachedError, InvalidAuthenticationError, InsufficientAccountBalanceError
-from core.model_runtime.model_providers.minimax.llm.types import MinimaxMessage
-from typing import List, Dict, Any, Generator, Union
-
-from json import dumps, loads
-from requests import post, Response
-from time import time
 from hashlib import md5
+from json import dumps, loads
+from time import time
+from typing import Any, Dict, Generator, List, Union
+
+from core.model_runtime.model_providers.minimax.llm.errors import (BadRequestError, InsufficientAccountBalanceError,
+                                                                   InternalServerError, InvalidAPIKeyError,
+                                                                   InvalidAuthenticationError, RateLimitReachedError)
+from core.model_runtime.model_providers.minimax.llm.types import MinimaxMessage
+from requests import Response, post
+
 
 class MinimaxChatCompletion(object):
     """
@@ -76,7 +78,7 @@ class MinimaxChatCompletion(object):
 
         try:
             response = post(
-                url=url, data=dumps(body), headers=headers, stream=stream, timeout=10)
+                url=url, data=dumps(body), headers=headers, stream=stream, timeout=(10, 300))
         except Exception as e:
             raise InternalServerError(e)
         

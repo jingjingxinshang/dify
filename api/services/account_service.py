@@ -6,23 +6,24 @@ import secrets
 import uuid
 from datetime import datetime, timedelta
 from hashlib import sha256
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
-from werkzeug.exceptions import Forbidden, Unauthorized
-from flask import session, current_app
-from sqlalchemy import func
-
+from constants.languages import languages, language_timezone_mapping
 from events.tenant_event import tenant_was_created
 from extensions.ext_redis import redis_client
-from services.errors.account import AccountLoginError, CurrentPasswordIncorrectError, LinkAccountIntegrateError, \
-    TenantNotFound, AccountNotLinkTenantError, InvalidActionError, CannotOperateSelfError, MemberNotInTenantError, \
-    RoleAlreadyAssignedError, NoPermissionError, AccountRegisterError, AccountAlreadyInTenantError
+from flask import current_app, session
 from libs.helper import get_remote_ip
+from libs.passport import PassportService
 from libs.password import compare_password, hash_password
 from libs.rsa import generate_key_pair
-from libs.passport import PassportService
 from models.account import *
+from services.errors.account import (AccountAlreadyInTenantError, AccountLoginError, AccountNotLinkTenantError,
+                                     AccountRegisterError, CannotOperateSelfError, CurrentPasswordIncorrectError,
+                                     InvalidActionError, LinkAccountIntegrateError, MemberNotInTenantError,
+                                     NoPermissionError, RoleAlreadyAssignedError, TenantNotFound)
+from sqlalchemy import func
 from tasks.mail_invite_member_task import send_invite_member_mail_task
+from werkzeug.exceptions import Forbidden, Unauthorized
 
 
 def _create_tenant_for_account(account) -> Tenant:
@@ -85,13 +86,13 @@ class AccountService:
                 db.session.commit()
 
         return account
-    
+
     @staticmethod
     def get_account_jwt_token(account):
         payload = {
             "user_id": account.id,
             "exp": datetime.utcnow() + timedelta(days=30),
-            "iss":  current_app.config['EDITION'],
+            "iss": current_app.config['EDITION'],
             "sub": 'Console API Passport',
         }
 
@@ -138,7 +139,7 @@ class AccountService:
 
     @staticmethod
     def create_account(email: str, name: str, password: str = None,
-                       interface_language: str = 'en-US', interface_theme: str = 'light',
+                       interface_language: str = languages[0], interface_theme: str = 'light',
                        timezone: str = 'America/New_York', ) -> Account:
         """create account"""
         account = Account()
@@ -159,11 +160,9 @@ class AccountService:
 
         account.interface_language = interface_language
         account.interface_theme = interface_theme
-
-        if interface_language == 'zh-Hans':
-            account.timezone = 'Asia/Shanghai'
-        else:
-            account.timezone = timezone
+        
+        # Set timezone based on language
+        account.timezone = language_timezone_mapping.get(interface_language, 'UTC') 
 
         db.session.add(account)
         db.session.commit()
@@ -346,7 +345,7 @@ class TenantService:
         }
         if action not in ['add', 'remove', 'update']:
             raise InvalidActionError("Invalid action.")
-        
+
         if member:
             if operator.id == member.id:
                 raise CannotOperateSelfError("Cannot operate self.")
@@ -464,16 +463,21 @@ class RegisterService:
             account = AccountService.create_account(email, name)
             account.status = AccountStatus.PENDING.value
             db.session.commit()
+
+            TenantService.create_tenant_member(tenant, account, role)
         else:
             TenantService.check_member_permission(tenant, inviter, account, 'add')
             ta = TenantAccountJoin.query.filter_by(
                 tenant_id=tenant.id,
                 account_id=account.id
             ).first()
-            if ta:
-                raise AccountAlreadyInTenantError("Account already in tenant.")
 
-        TenantService.create_tenant_member(tenant, account, role)
+            if not ta:
+                TenantService.create_tenant_member(tenant, account, role)
+
+            # Support resend invitation email when the account is pending status
+            if account.status != AccountStatus.PENDING.value:
+                raise AccountAlreadyInTenantError("Account already in tenant.")
 
         token = cls.generate_invite_token(tenant, account)
 
@@ -542,10 +546,10 @@ class RegisterService:
             return None
 
         return {
-                'account': account,
-                'data': invitation_data,
-                'tenant': tenant,
-                }
+            'account': account,
+            'data': invitation_data,
+            'tenant': tenant,
+        }
 
     @classmethod
     def _get_invitation_by_token(cls, token: str, workspace_id: str, email: str) -> Optional[Dict[str, str]]:

@@ -1,18 +1,18 @@
 # -*- coding:utf-8 -*-
-from flask_restful import fields, marshal_with, reqparse
-from flask_restful.inputs import int_range
-from werkzeug.exceptions import NotFound
-
 import services
 from controllers.service_api import api
 from controllers.service_api.app import create_or_update_end_user_for_user_id
 from controllers.service_api.app.error import NotChatAppError
 from controllers.service_api.wraps import AppApiResource
-from libs.helper import TimestampField, uuid_value
-from services.message_service import MessageService
 from extensions.ext_database import db
-from models.model import Message, EndUser
 from fields.conversation_fields import message_file_fields
+from flask_restful import fields, marshal_with, reqparse
+from flask_restful.inputs import int_range
+from libs.helper import TimestampField, uuid_value
+from models.model import EndUser, Message
+from services.message_service import MessageService
+from werkzeug.exceptions import NotFound
+
 
 class MessageListApi(AppApiResource):
     feedback_fields = {
@@ -37,6 +37,20 @@ class MessageListApi(AppApiResource):
         'created_at': TimestampField
     }
 
+    agent_thought_fields = {
+        'id': fields.String,
+        'chain_id': fields.String,
+        'message_id': fields.String,
+        'position': fields.Integer,
+        'thought': fields.String,
+        'tool': fields.String,
+        'tool_labels': fields.Raw,
+        'tool_input': fields.String,
+        'created_at': TimestampField,
+        'observation': fields.String,
+        'message_files': fields.List(fields.String, attribute='files')
+    }
+
     message_fields = {
         'id': fields.String,
         'conversation_id': fields.String,
@@ -46,7 +60,8 @@ class MessageListApi(AppApiResource):
         'message_files': fields.List(fields.Nested(message_file_fields), attribute='files'),
         'feedback': fields.Nested(feedback_fields, attribute='user_feedback', allow_null=True),
         'retriever_resources': fields.List(fields.Nested(retriever_resource_fields)),
-        'created_at': TimestampField
+        'created_at': TimestampField,
+        'agent_thoughts': fields.List(fields.Nested(agent_thought_fields))
     }
 
     message_infinite_scroll_pagination_fields = {

@@ -1,24 +1,23 @@
 import logging
-from typing import Optional, Generator, Union, List, cast
+from typing import Generator, List, Optional, Union, cast
 
 import tiktoken
-from openai import OpenAI, Stream
-from openai.types import Completion
-from openai.types.chat import ChatCompletionChunk, ChatCompletion, ChatCompletionMessageToolCall
-from openai.types.chat.chat_completion_chunk import ChoiceDeltaToolCall, ChoiceDeltaFunctionCall
-from openai.types.chat.chat_completion_message import FunctionCall
-
-from core.model_runtime.entities.message_entities import PromptMessageTool, PromptMessage, AssistantPromptMessage, \
-    PromptMessageFunction, UserPromptMessage, PromptMessageContentType, ImagePromptMessageContent, \
-    TextPromptMessageContent, SystemPromptMessage, ToolPromptMessage
-from core.model_runtime.entities.model_entities import AIModelEntity, I18nObject, ModelType, FetchFrom, \
-    PriceConfig, AIModelEntity, FetchFrom
-from core.model_runtime.entities.llm_entities import LLMMode, LLMResult, \
-    LLMResultChunk, LLMResultChunkDelta
+from core.model_runtime.entities.llm_entities import LLMMode, LLMResult, LLMResultChunk, LLMResultChunkDelta
+from core.model_runtime.entities.message_entities import (AssistantPromptMessage, ImagePromptMessageContent,
+                                                          PromptMessage, PromptMessageContentType,
+                                                          PromptMessageFunction, PromptMessageTool, SystemPromptMessage,
+                                                          TextPromptMessageContent, ToolPromptMessage,
+                                                          UserPromptMessage)
+from core.model_runtime.entities.model_entities import AIModelEntity, FetchFrom, I18nObject, ModelType, PriceConfig
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
 from core.model_runtime.model_providers.__base.large_language_model import LargeLanguageModel
 from core.model_runtime.model_providers.openai._common import _CommonOpenAI
 from core.model_runtime.utils import helper
+from openai import OpenAI, Stream
+from openai.types import Completion
+from openai.types.chat import ChatCompletion, ChatCompletionChunk, ChatCompletionMessageToolCall
+from openai.types.chat.chat_completion_chunk import ChoiceDeltaFunctionCall, ChoiceDeltaToolCall
+from openai.types.chat.chat_completion_message import FunctionCall
 
 logger = logging.getLogger(__name__)
 
@@ -486,19 +485,37 @@ class OpenAILargeLanguageModel(_CommonOpenAI, LargeLanguageModel):
         :return: llm response chunk generator
         """
         full_assistant_content = ''
+        delta_assistant_message_function_call_storage: ChoiceDeltaFunctionCall = None
         for chunk in response:
             if len(chunk.choices) == 0:
                 continue
 
             delta = chunk.choices[0]
 
-            if delta.finish_reason is None and (delta.delta.content is None or delta.delta.content == ''):
+            if delta.finish_reason is None and (delta.delta.content is None or delta.delta.content == '') and \
+                delta.delta.function_call is None:
                 continue
 
             # assistant_message_tool_calls = delta.delta.tool_calls
             assistant_message_function_call = delta.delta.function_call
 
             # extract tool calls from response
+            if delta_assistant_message_function_call_storage is not None:
+                # handle process of stream function call
+                if assistant_message_function_call:
+                    # message has not ended ever
+                    delta_assistant_message_function_call_storage.arguments += assistant_message_function_call.arguments
+                    continue
+                else:
+                    # message has ended
+                    assistant_message_function_call = delta_assistant_message_function_call_storage
+                    delta_assistant_message_function_call_storage = None
+            else:
+                if assistant_message_function_call:
+                    # start of stream function call
+                    delta_assistant_message_function_call_storage = assistant_message_function_call
+                    continue
+
             # tool_calls = self._extract_response_tool_calls(assistant_message_tool_calls)
             function_call = self._extract_response_function_call(assistant_message_function_call)
             tool_calls = [function_call] if function_call else []
@@ -766,7 +783,6 @@ class OpenAILargeLanguageModel(_CommonOpenAI, LargeLanguageModel):
         num_tokens = 0
         for tool in tools:
             num_tokens += len(encoding.encode('type'))
-            num_tokens += len(encoding.encode(tool.get("type")))
             num_tokens += len(encoding.encode('function'))
 
             # calculate num tokens for function object

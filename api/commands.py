@@ -1,7 +1,9 @@
+import base64
 import datetime
 import json
 import math
 import random
+import secrets
 import string
 import threading
 import time
@@ -9,26 +11,23 @@ import uuid
 
 import click
 import qdrant_client
-from qdrant_client.http.models import TextIndexParams, TextIndexType, TokenizerType
-from tqdm import tqdm
-from flask import current_app, Flask
-from werkzeug.exceptions import NotFound
-
+from constants.languages import user_input_form_template
 from core.embedding.cached_embedding import CacheEmbedding
 from core.index.index import IndexBuilder
 from core.model_manager import ModelManager
 from core.model_runtime.entities.model_entities import ModelType
-from libs.password import password_pattern, valid_password, hash_password
-from libs.helper import email as email_validate
 from extensions.ext_database import db
+from flask import Flask, current_app
+from libs.helper import email as email_validate
+from libs.password import hash_password, password_pattern, valid_password
 from libs.rsa import generate_key_pair
 from models.account import InvitationCode, Tenant, TenantAccountJoin
-from models.dataset import Dataset, DatasetQuery, Document, DatasetCollectionBinding
-from models.model import Account, AppModelConfig, App, MessageAnnotation, Message
-import secrets
-import base64
-
-from models.provider import Provider, ProviderType, ProviderQuotaType, ProviderModel
+from models.dataset import Dataset, DatasetCollectionBinding, DatasetQuery, Document
+from models.model import Account, App, AppModelConfig, Message, MessageAnnotation, InstalledApp
+from models.provider import Provider, ProviderModel, ProviderQuotaType, ProviderType
+from qdrant_client.http.models import TextIndexParams, TextIndexType, TokenizerType
+from tqdm import tqdm
+from werkzeug.exceptions import NotFound
 
 
 @click.command('reset-password', help='Reset the account password.')
@@ -362,7 +361,7 @@ def create_qdrant_indexes():
                                                                   model_provider=model_provider)
                         embeddings = CacheEmbedding(embedding_model)
 
-                        from core.index.vector_index.qdrant_vector_index import QdrantVectorIndex, QdrantConfig
+                        from core.index.vector_index.qdrant_vector_index import QdrantConfig, QdrantVectorIndex
 
                         index = QdrantVectorIndex(
                             dataset=dataset,
@@ -433,7 +432,7 @@ def update_qdrant_indexes():
                                                               model_provider=model_provider)
                         embeddings = CacheEmbedding(embedding_model)
 
-                        from core.index.vector_index.qdrant_vector_index import QdrantVectorIndex, QdrantConfig
+                        from core.index.vector_index.qdrant_vector_index import QdrantConfig, QdrantVectorIndex
 
                         index = QdrantVectorIndex(
                             dataset=dataset,
@@ -558,7 +557,7 @@ def deal_dataset_vector(flask_app: Flask, dataset: Dataset, normalization_count:
                 db.session.add(dataset_collection_binding)
                 db.session.commit()
 
-            from core.index.vector_index.qdrant_vector_index import QdrantVectorIndex, QdrantConfig
+            from core.index.vector_index.qdrant_vector_index import QdrantConfig, QdrantVectorIndex
 
             index = QdrantVectorIndex(
                 dataset=dataset,
@@ -585,28 +584,6 @@ def deal_dataset_vector(flask_app: Flask, dataset: Dataset, normalization_count:
 @click.option("--batch-size", default=500, help="Number of records to migrate in each batch.")
 def update_app_model_configs(batch_size):
     pre_prompt_template = '{{default_input}}'
-    user_input_form_template = {
-        "en-US": [
-            {
-                "paragraph": {
-                    "label": "Query",
-                    "variable": "default_input",
-                    "required": False,
-                    "default": ""
-                }
-            }
-        ],
-        "zh-Hans": [
-            {
-                "paragraph": {
-                    "label": "查询内容",
-                    "variable": "default_input",
-                    "required": False,
-                    "default": ""
-                }
-            }
-        ]
-    }
 
     click.secho("Start migrate old data that the text generator can support paragraph variable.", fg='green')
 

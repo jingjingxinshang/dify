@@ -2,10 +2,12 @@
 - anthropic
 - azure_openai
 - google
+- cohere
+- bedrock
+- togetherai
+- ollama
 - replicate
 - huggingface_hub
-- cohere
-- togetherai
 - zhipuai
 - baichuan
 - spark
